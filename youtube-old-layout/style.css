@@ -1,0 +1,6 @@
+/* The new layout's right-hand side rail (dismissible panels host). The flag
+   override normally prevents it from rendering at all; this hides it if it
+   slips through. */
+.ytSideRailViewModelHost {
+  display: none !important;
+}

@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Old Layout",
+  "version": "1.0.0",
+  "description": "Restores the classic YouTube watch page: recommendations on the right, comments below the video.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["flags.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["fallback.js"],
+      "css": ["style.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Chrome extension packaging output
+*.crx
+*.pem
+*.zip
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
