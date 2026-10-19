@@ -35,9 +35,10 @@
   <h2>Local database</h2>
   <p id="localStatus">…</p>
   <p><label><input id="fallback" type="checkbox"> Ask OMDb for titles the local database doesn't have</label></p>
-  <p>The local database is built from IMDb's public data dumps by
-     <code>tools/build-local-db.mjs</code> (needs Node 18+; run it weekly or so).
-     It answers without using any OMDb requests.</p>
+  <p>The local database is built on your machine from IMDb's public data dumps by
+     <code>tools/build-local-db.mjs</code> (needs Node 18+; run it weekly or so to
+     stay current). It answers without using any OMDb requests. It isn't included
+     in the download because IMDb licenses that data for each person's own use.</p>
 
   <h2>Stored ratings</h2>
   <ul id="stats">

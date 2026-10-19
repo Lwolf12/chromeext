@@ -25,7 +25,7 @@ async function refreshStats() {
   const l = u.local || {};
   $('localStatus').textContent = l.present
     ? l.titles.toLocaleString() + ' titles with at least ' + l.minVotes + ' votes, built ' + l.built + '.'
-    : 'Not present: no data/ratings.json.gz in the extension folder, so every lookup goes to OMDb.';
+    : 'Not built yet. Run "node tools/build-local-db.mjs" in the extension folder, then reload the extension. Or add an OMDb key above instead. Without one of the two, nothing shows.';
 }
 
 chrome.storage.sync.get('omdbFallback').then(({ omdbFallback = true }) => {
