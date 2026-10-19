@@ -6,6 +6,7 @@ Store; you load them straight from this repository.
 | Extension | What it does |
 | --- | --- |
 | [youtube-old-layout](youtube-old-layout/) | Brings back the classic YouTube watch page: recommended videos on the right, comments under the video. |
+| [imdb-ratings](imdb-ratings/) | Overlays the IMDb user rating on title cards while browsing Netflix, Prime Video, Hulu and HBO Max. Needs a free OMDb API key. |
 
 ## Installing any of them
 

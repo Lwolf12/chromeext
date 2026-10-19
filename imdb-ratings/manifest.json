@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "IMDb Ratings for Streaming",
+  "version": "0.4.0",
+  "description": "Shows the IMDb user rating on top of each title card while you browse Netflix, Prime Video, Hulu and HBO Max.",
+  "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": ["https://www.omdbapi.com/"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.netflix.com/*"],
+      "js": ["sites/netflix.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.amazon.com/*", "https://www.primevideo.com/*"],
+      "js": ["sites/primevideo.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.hulu.com/*"],
+      "js": ["sites/hulu.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://play.hbomax.com/*"],
+      "js": ["sites/hbomax.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "action": {
+    "default_title": "IMDb Ratings: settings"
+  }
+}

@@ -1,0 +1,57 @@
+// Site adapter for Netflix. Defines window.IMDBEXT_SITE, which content.js uses.
+//
+// Netflix's 2026 UI uses hashed class names, but marks each card anchor with a
+// stable data-uia attribute and puts the title in its aria-label. Cards are
+// 262x147 landscape tiles inside horizontal carousels. Hovering a card opens a
+// preview popup (.previewModal--wrapper.mini-modal); clicking "more" opens the
+// full detail modal (.previewModal--wrapper.detail-modal). Both carry the
+// title as the alt text of their box-art image.
+//
+// To support another service, add a sibling file that defines the same shape
+// and list it in manifest.json for that site's URLs.
+
+window.IMDBEXT_SITE = {
+  name: 'netflix',
+
+  targets: [
+    {
+      // Small badge in the corner of each tile. Only looked up near the viewport.
+      kind: 'card',
+      selector: [
+        'a[data-uia="standard-card"]',
+        'a[data-uia="ranked-card"]',
+        'a[data-uia="progress-card"]',
+      ].join(', '),
+      titleOf(el) {
+        return (el.getAttribute('aria-label') || '').trim() || null;
+      },
+      host(el) {
+        return el;
+      },
+    },
+    {
+      // Detail line (rating, year, votes) inside the hover preview / detail modal.
+      kind: 'detail',
+      selector: '.previewModal--wrapper',
+      titleOf(el) {
+        const img = el.querySelector('img.previewModal--boxart');
+        return (img && img.alt.trim()) || null;
+      },
+      host(el) {
+        return (
+          el.querySelector('.previewModal--metadatAndControls-container') ||
+          el.querySelector('.previewModal--info')
+        );
+      },
+      // Own line directly under the play / add / rate buttons.
+      place(host, badge) {
+        const controls = host.querySelector('[data-uia$="-controls"]');
+        if (controls && controls.parentElement === host) controls.after(badge);
+        else host.prepend(badge);
+      },
+    },
+  ],
+
+  // Attributes whose changes mean a title may have changed.
+  watchAttributes: ['aria-label', 'alt'],
+};

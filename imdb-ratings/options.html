@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>IMDb Ratings settings</title>
+  <style>
+    body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; width: 380px; color: #222; }
+    h1 { font-size: 16px; margin: 0 0 12px; }
+    h2 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; color: #666; }
+    label { display: block; font-weight: 600; margin-bottom: 4px; }
+    input[type=text] { width: 100%; box-sizing: border-box; padding: 6px 8px; font: inherit; border: 1px solid #aaa; border-radius: 4px; }
+    button { padding: 6px 14px; font: inherit; }
+    .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    p { margin: 8px 0 0; color: #555; }
+    #status { color: #2a7; font-weight: 600; min-height: 1.5em; margin-top: 6px; }
+    #testResult { margin-top: 6px; font-weight: 600; min-height: 1.5em; word-break: break-word; }
+    #testResult.ok { color: #2a7; }
+    #testResult.bad { color: #c33; }
+    #stats { margin: 0; padding-left: 18px; color: #333; }
+    a { color: #06c; }
+  </style>
+</head>
+<body>
+  <h1>IMDb Ratings for Netflix</h1>
+
+  <label for="key">OMDb API key</label>
+  <input id="key" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. 1a2b3c4d">
+  <div class="row"><button id="save">Save</button><button id="test" type="button">Test key</button></div>
+  <div id="testResult"></div>
+  <p>Ratings come from the <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">OMDb API</a>.
+     Request a free key there (1,000 lookups a day), activate it from the email they send, and paste it above.</p>
+
+  <h2>Stored ratings</h2>
+  <ul id="stats">
+    <li>Titles stored: <span id="stored">…</span></li>
+    <li>OMDb requests today: <span id="today">…</span> / 1,000 <span id="limit"></span></li>
+  </ul>
+  <p>Answers are kept permanently and re-checked after 30 days (3 days for titles OMDb didn't know).
+     If the daily limit is reached, stored ratings keep showing and new lookups wait for tomorrow.</p>
+  <div class="row">
+    <button id="export" type="button">Export JSON</button>
+    <button id="import" type="button">Import JSON</button>
+    <button id="clear" type="button">Clear all</button>
+    <input id="file" type="file" accept="application/json,.json" hidden>
+  </div>
+  <div id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
