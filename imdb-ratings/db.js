@@ -89,11 +89,11 @@ const RatingsDB = (() => {
     const y = year ? Number(year) : NaN;
     const hit = (Number.isFinite(y) && pool.find((e) => e[2] != null && Math.abs(e[2] - y) <= 1)) || pool[0];
     if (!hit) return null;
-    const [imdbID, type, year, rating, votes, primaryTitle] = hit;
+    const [imdbID, type, startYear, rating, votes, primaryTitle] = hit;
     return {
       rating,
       votes: votes.toLocaleString('en-US'),
-      year: year == null ? null : String(year),
+      year: startYear == null ? null : String(startYear),
       imdbID,
       kind: type === 'm' ? 'movie' : 'series',
       matchedTitle: primaryTitle || title,
