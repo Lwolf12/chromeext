@@ -13,10 +13,10 @@ layout, including theater mode.
 
 The extension isn't on the Chrome Web Store, so it's loaded "unpacked":
 
-1. Click the green **Code** button on the
-   [repository page](https://github.com/Lwolf12/chromeext) and choose
-   **Download ZIP**. Extract it somewhere permanent; Chrome loads the
-   extension from that folder every time it starts.
+1. Download the latest `youtube-old-layout` ZIP from the
+   [Releases page](https://github.com/Lwolf12/chromeext/releases) and
+   extract it somewhere permanent; Chrome loads the extension from that
+   folder every time it starts.
 2. In Chrome, open `chrome://extensions`.
 3. Turn on **Developer mode** (toggle in the top right).
 4. Click **Load unpacked** and pick the `youtube-old-layout` folder from the

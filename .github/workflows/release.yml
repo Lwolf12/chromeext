@@ -1,0 +1,54 @@
+# Publishes one extension as a GitHub Release when a tag of the form
+# <folder>-v<version> is pushed, e.g. imdb-ratings-v0.4.0. The release gets a
+# ZIP of that folder as its asset, and GitHub counts downloads per asset.
+#
+# To cut a release (see RELEASING.md):
+#   git tag imdb-ratings-v0.4.0
+#   git push origin imdb-ratings-v0.4.0
+
+name: Release extension
+
+on:
+  push:
+    tags:
+      - "*-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the extension folder and version from the tag
+        id: meta
+        run: |
+          tag="$GITHUB_REF_NAME"
+          ext="${tag%-v*}"
+          ver="${tag##*-v}"
+          if [ ! -f "$ext/manifest.json" ]; then
+            echo "Tag '$tag' does not name a folder with a manifest.json" >&2
+            exit 1
+          fi
+          manifest_ver=$(grep -oP '"version"\s*:\s*"\K[^"]+' "$ext/manifest.json")
+          if [ "$manifest_ver" != "$ver" ]; then
+            echo "Tag version $ver does not match $ext/manifest.json version $manifest_ver" >&2
+            exit 1
+          fi
+          echo "ext=$ext" >> "$GITHUB_OUTPUT"
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Zip the extension folder
+        run: zip -r "${{ steps.meta.outputs.ext }}-v${{ steps.meta.outputs.ver }}.zip" "${{ steps.meta.outputs.ext }}"
+
+      - name: Create the release with the ZIP attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ext="${{ steps.meta.outputs.ext }}"
+          ver="${{ steps.meta.outputs.ver }}"
+          gh release create "$GITHUB_REF_NAME" "$ext-v$ver.zip" \
+            --title "$ext v$ver" \
+            --notes "Download the ZIP, extract it, then in Chrome open chrome://extensions, turn on Developer mode, click **Load unpacked** and pick the \`$ext\` folder. Details in [$ext/README.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/$ext/README.md)."

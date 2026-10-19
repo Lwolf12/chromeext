@@ -19,10 +19,12 @@ Planned: Hulu and others, each as a small site adapter.
    from OMDb, not IMDb: IMDb itself doesn't issue keys, and OMDb is a
    separate service that mirrors IMDb's ratings. Without a key the
    extension loads but shows no badges.
-2. Download this repository (green **Code** button, **Download ZIP**) and
-   extract it, or clone it. In Chrome open `chrome://extensions`, turn on
-   **Developer mode**, click
-   **Load unpacked** and pick the `imdb-ratings` folder.
+2. Download the latest `imdb-ratings` ZIP from the
+   [Releases page](https://github.com/Lwolf12/chromeext/releases) and
+   extract it somewhere permanent (Chrome loads the extension from that
+   folder every time it starts). In Chrome open `chrome://extensions`, turn
+   on **Developer mode**, click **Load unpacked** and pick the
+   `imdb-ratings` folder.
 3. Click the extension's toolbar icon, paste the key, **Save**.
 4. Open <https://www.netflix.com/browse> (reload if it was already open).
 
