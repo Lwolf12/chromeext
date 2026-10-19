@@ -16,6 +16,9 @@
     #testResult { margin-top: 6px; font-weight: 600; min-height: 1.5em; word-break: break-word; }
     #testResult.ok { color: #2a7; }
     #testResult.bad { color: #c33; }
+    label:has(input[type=checkbox]) { font-weight: normal; display: flex; gap: 6px; align-items: center; }
+    progress { width: 100%; height: 12px; margin-top: 8px; }
+    #buildText { color: #555; font-size: 13px; margin-top: 4px; }
     #stats { margin: 0; padding-left: 18px; color: #333; }
     a { color: #06c; }
   </style>
@@ -34,11 +37,17 @@
 
   <h2>Local database</h2>
   <p id="localStatus">…</p>
+  <div class="row"><button id="build" type="button">Update now</button></div>
+  <div id="buildProgress" hidden>
+    <progress id="buildBar" max="1" value="0"></progress>
+    <div id="buildText"></div>
+  </div>
+  <p><label><input id="auto" type="checkbox"> Refresh automatically every week</label></p>
   <p><label><input id="fallback" type="checkbox"> Ask OMDb for titles the local database doesn't have</label></p>
-  <p>The local database is built on your machine from IMDb's public data dumps by
-     <code>tools/build-local-db.mjs</code> (needs Node 18+; run it weekly or so to
-     stay current). It answers without using any OMDb requests. It isn't included
-     in the download because IMDb licenses that data for each person's own use.</p>
+  <p>The database is built in your browser from IMDb's public data dumps (about
+     240 MB downloaded from IMDb, a few minutes). It then answers locally without
+     any requests. It isn't shipped with the extension because IMDb licenses that
+     data for each person's own use.</p>
 
   <h2>Stored ratings</h2>
   <ul id="stats">

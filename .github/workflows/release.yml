@@ -40,11 +40,11 @@ jobs:
           echo "ext=$ext" >> "$GITHUB_OUTPUT"
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
-      # The imdb-ratings local database is deliberately NOT built here: it is
-      # derived from IMDb's data dumps, which are licensed for each user's own
-      # personal use. Users build it themselves with tools/build-local-db.mjs.
+      # imdb-ratings ships no ratings data: the extension builds its database
+      # in each user's browser from IMDb's dumps, which IMDb licenses for
+      # personal use only.
       - name: Zip the extension folder
-        run: zip -r "${{ steps.meta.outputs.ext }}-v${{ steps.meta.outputs.ver }}.zip" "${{ steps.meta.outputs.ext }}" -x "*/data/*"
+        run: zip -r "${{ steps.meta.outputs.ext }}-v${{ steps.meta.outputs.ver }}.zip" "${{ steps.meta.outputs.ext }}"
 
       - name: Create the release with the ZIP attached
         env:

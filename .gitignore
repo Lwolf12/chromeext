@@ -9,5 +9,3 @@
 Thumbs.db
 .DS_Store
 
-# Built weekly by imdb-ratings/tools/build-local-db.mjs; too big and churny for git
-imdb-ratings/data/

@@ -8,6 +8,43 @@ function say(text) {
 const STALE_WORKER =
   'The extension’s background worker is out of date. On chrome://extensions, click the reload icon on this extension’s card, then reopen this panel.';
 
+const PHASES = {
+  starting: 'Starting…',
+  ratings: 'Downloading ratings',
+  basics: 'Downloading title list',
+  writing: 'Saving to the database',
+};
+
+function ago(ts) {
+  const days = Math.floor((Date.now() - ts) / 86400000);
+  return days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago';
+}
+
+function showBuild(build) {
+  const box = $('buildProgress');
+  const btn = $('build');
+  if (!build || build.status === 'idle') {
+    box.hidden = true;
+    btn.disabled = false;
+    return;
+  }
+  if (build.status === 'running') {
+    box.hidden = false;
+    btn.disabled = true;
+    $('buildBar').value = build.pct || 0;
+    const detail = build.phase === 'basics' && build.detail ? ' (' + build.detail.toLocaleString() + ' titles so far)' : '';
+    $('buildText').textContent = (PHASES[build.phase] || build.phase) + ' ' + Math.round((build.pct || 0) * 100) + '%' + detail;
+    return;
+  }
+  box.hidden = false;
+  btn.disabled = false;
+  $('buildBar').value = build.status === 'done' ? 1 : 0;
+  $('buildText').textContent =
+    build.status === 'done'
+      ? 'Done: ' + build.info.titles.toLocaleString() + ' titles.'
+      : 'Failed: ' + build.message + ' (will retry automatically in a day)';
+}
+
 async function refreshStats() {
   let u;
   try {
@@ -24,17 +61,11 @@ async function refreshStats() {
   $('limit').textContent = u.limitHit ? '(limit reached; paused for now)' : '';
   const l = u.local || {};
   $('localStatus').textContent = l.present
-    ? l.titles.toLocaleString() + ' titles with at least ' + l.minVotes + ' votes, built ' + l.built + '.'
-    : 'Not built yet. Run "node tools/build-local-db.mjs" in the extension folder, then reload the extension. Or add an OMDb key above instead. Without one of the two, nothing shows.';
+    ? l.titles.toLocaleString() + ' titles with at least ' + l.minVotes + ' votes, built ' + l.built + ' (' + ago(l.builtAt) + ').'
+    : 'Not built yet. Click Update now (a few minutes), or add an OMDb key above instead. Without one of the two, nothing shows.';
+  $('auto').checked = u.autoRefresh !== false;
+  showBuild(u.build);
 }
-
-chrome.storage.sync.get('omdbFallback').then(({ omdbFallback = true }) => {
-  $('fallback').checked = omdbFallback;
-});
-$('fallback').addEventListener('change', async () => {
-  await chrome.storage.sync.set({ omdbFallback: $('fallback').checked });
-  say($('fallback').checked ? 'OMDb fallback on.' : 'OMDb fallback off: titles missing locally show n/a.');
-});
 
 async function ratingEntries() {
   const all = await chrome.storage.local.get(null);
@@ -48,12 +79,33 @@ chrome.storage.sync.get('omdbKey').then(({ omdbKey }) => {
 });
 refreshStats();
 
+// Live progress while a build runs: the worker writes its state to session
+// storage, which fires this for every update.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'session' && changes.buildState) {
+    showBuild(changes.buildState.newValue);
+    const s = changes.buildState.newValue;
+    if (s && (s.status === 'done' || s.status === 'error')) refreshStats();
+  }
+});
+
+$('build').addEventListener('click', async () => {
+  $('build').disabled = true;
+  const state = await chrome.runtime.sendMessage({ type: 'build' });
+  showBuild(state);
+});
+
+$('auto').addEventListener('change', async () => {
+  await chrome.storage.sync.set({ autoRefresh: $('auto').checked });
+  say($('auto').checked ? 'Automatic weekly refresh on.' : 'Automatic refresh off; use Update now when you want.');
+});
+
 $('save').addEventListener('click', async () => {
   const omdbKey = $('key').value.trim();
   await chrome.storage.sync.set({ omdbKey });
   // A new key means an earlier "limit reached" pause no longer applies.
   await chrome.storage.local.remove(['limitHitDay', 'limitPauseUntil']);
-  say(omdbKey ? 'Saved. Reload Netflix to see ratings.' : 'Key cleared.');
+  say(omdbKey ? 'Saved. Reload the video site to see ratings.' : 'Key cleared.');
   refreshStats();
 });
 
@@ -78,6 +130,14 @@ $('test').addEventListener('click', async () => {
   out.className = r.ok ? 'ok' : 'bad';
   out.textContent = (r.ok ? 'OK: ' : 'Failed: ') + r.detail;
   refreshStats();
+});
+
+chrome.storage.sync.get('omdbFallback').then(({ omdbFallback = true }) => {
+  $('fallback').checked = omdbFallback;
+});
+$('fallback').addEventListener('change', async () => {
+  await chrome.storage.sync.set({ omdbFallback: $('fallback').checked });
+  say($('fallback').checked ? 'OMDb fallback on.' : 'OMDb fallback off: titles missing locally show n/a.');
 });
 
 $('export').addEventListener('click', async () => {

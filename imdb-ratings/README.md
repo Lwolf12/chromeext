@@ -23,48 +23,42 @@ so more services can be added.
    folder every time it starts). In Chrome open `chrome://extensions`, turn
    on **Developer mode**, click **Load unpacked** and pick the
    `imdb-ratings` folder.
-2. Give it a ratings source. Either or both:
-   - **Build the local database** (next section): one command, needs Node,
-     no key, and nothing leaves your machine while you browse.
-   - **Add a free OMDb API key**: no Node needed; titles are looked up as
-     you browse. Get one at <https://www.omdbapi.com/apikey.aspx> (1,000
-     lookups a day), activate it from the email they send, open the settings
-     panel (it opens on first install; later, click the extension's toolbar
-     icon), paste it, **Save**, and use **Test key**. The key comes from
-     OMDb, not IMDb: IMDb itself doesn't issue keys, and OMDb is a separate
-     service that mirrors IMDb's ratings.
-3. Open any of the four sites (reload if it was already open).
+2. The settings panel opens and the extension starts building its ratings
+   database (next section): a few minutes, with a progress bar. When it
+   says done, open any of the four sites. That's it.
+3. Optional: a free OMDb API key fills in titles the database doesn't
+   have, such as brand-new releases. Get one at
+   <https://www.omdbapi.com/apikey.aspx> (1,000 lookups a day), activate it
+   from the email they send, paste it into the settings panel (click the
+   extension's toolbar icon), **Save**, and use **Test key**. The key comes
+   from OMDb, not IMDb: IMDb itself doesn't issue keys, and OMDb is a
+   separate service that mirrors IMDb's ratings.
 
 ## Local database
 
 IMDb publishes its ratings as daily data dumps, licensed for each person's
-own non-commercial use. The extension can answer from a copy built on your
-machine, which uses no OMDb requests and works without a key:
+own non-commercial use. The extension builds its database from them in your
+browser: it downloads about 240 MB from IMDb, keeps movies and series with
+at least 25 votes (about 365,000 titles), and stores the result in the
+browser's IndexedDB. Lookups then happen locally, with no requests to anyone.
 
-```bash
-node tools/build-local-db.mjs
-```
+The build runs on first install, again automatically once the database is a
+week old, and whenever you click **Update now** on the settings panel, which
+also shows the title count, build date and progress. The weekly refresh can
+be switched off there. A failed build (offline, say) is retried a day later.
 
-That downloads about 240 MB from IMDb, keeps movies and series with at least
-25 votes (about 365,000 titles), and writes `data/ratings.json.gz` (about
-10 MB) inside the extension folder. Click the reload icon on the extension's
-card afterwards. The settings panel shows the database's size and build date.
-Run it again whenever you like; weekly is plenty, since ratings move slowly.
-
-The database is not included in the release ZIP and is not committed to the
-repository: the data is IMDb's, and their licence covers your own copy, not
-redistribution.
+No ratings data ships with the extension and none is in this repository: the
+data is IMDb's, and their licence covers your own copy, not redistribution.
 
 Lookups go: stored answers, then the local database, then OMDb for titles
-the local file doesn't have (brand-new releases, titles under 25 votes), if
-a key is set. The OMDb fallback can be switched off on the settings panel.
-`--min-votes N` changes the cutoff; lower means more titles and a bigger file.
+the database doesn't have (brand-new releases, titles under 25 votes), if a
+key is set. The OMDb fallback can be switched off on the settings panel.
 
 ## Layout
 
 | File | Role |
 | --- | --- |
-| `manifest.json` | Manifest V3. One content-script entry per site, each loading that site's adapter and then `content.js`; host permission for omdbapi.com only. |
+| `manifest.json` | Manifest V3. One content-script entry per site, each loading that site's adapter and then `content.js`; host permissions for datasets.imdbws.com (the dumps) and omdbapi.com only. |
 | `sites/netflix.js`, `sites/primevideo.js`, `sites/hulu.js`, `sites/hbomax.js` | Site adapters: which elements are title cards and hover previews, how to read the title (and movie/series type where available), and where the badge goes. |
 | `content.js` | Generic: watches the page, looks up titles as cards come near the viewport, draws badges, refreshes stale ones in the background. |
 | `background.js` | Service worker: answers from the store, then the local database, then OMDb (with a concurrency limit); permanent store in `chrome.storage.local`, daily request count, pause after a limit error. |
