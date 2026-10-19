@@ -1,5 +1,7 @@
-// Service worker: looks up IMDb ratings through the OMDb API and keeps a
-// permanent store of answers in chrome.storage.local.
+// Service worker: looks up IMDb ratings, first in the local database built
+// from IMDb's data dumps (local.js, data/ratings.json.gz), then through the
+// OMDb API for titles the local file lacks, and keeps a permanent store of
+// answers in chrome.storage.local.
 //
 // Content scripts send {type: 'rating', title} and get back
 //   {rating, votes, year, imdbID, kind, matchedTitle, ts, stale}  from the store
@@ -15,6 +17,8 @@
 //     next UTC day; stored answers keep being served.
 //   - Every outgoing request is counted per day so the options page can show
 //     usage against the 1,000/day free tier.
+
+importScripts('local.js');
 
 const HIT_REFRESH_MS = 30 * 24 * 60 * 60 * 1000; // ratings barely move
 const MISS_REFRESH_MS = 3 * 24 * 60 * 60 * 1000; // new titles show up on IMDb within days
@@ -99,7 +103,8 @@ async function usage() {
   const day = utcDay();
   const all = await chrome.storage.local.get(null);
   const stored = Object.keys(all).filter((k) => k.startsWith('r:')).length;
-  return { day, today: usage.day === day ? usage.count : 0, limitHit: Date.now() < limitPauseUntil, stored };
+  const local = await LocalDB.status();
+  return { day, today: usage.day === day ? usage.count : 0, limitHit: Date.now() < limitPauseUntil, stored, local };
 }
 
 async function lookup(title, kind, refresh) {
@@ -111,7 +116,21 @@ async function lookup(title, kind, refresh) {
     return { ...stored, stale: isStale(stored) };
   }
 
-  // Nothing stored, or a stale entry we've been asked to refresh.
+  // Nothing stored, or a stale entry we've been asked to refresh. The local
+  // IMDb-dump database answers first; it costs no requests.
+  const local = await LocalDB.lookup(title, kind);
+  if (local) {
+    const entry = { ...local, ts: Date.now() };
+    const writes = { [key]: entry };
+    if (kind) writes[storeKey(title, null)] = entry;
+    await chrome.storage.local.set(writes);
+    return { ...entry, stale: false };
+  }
+  const { omdbFallback = true } = await chrome.storage.sync.get('omdbFallback');
+  if (!omdbFallback) {
+    return stored ? { ...stored, stale: false } : { rating: null, source: 'local' };
+  }
+
   if (inFlight.has(key)) return inFlight.get(key);
   const p = schedule(() => fetchRating(title, kind))
     .then(async (result) => {

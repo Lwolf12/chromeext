@@ -17,7 +17,9 @@ downloads are counted per extension. A workflow
    The tag's version must match the manifest, or the workflow stops.
 3. A minute later the release appears at
    <https://github.com/Lwolf12/chromeext/releases> with
-   `imdb-ratings-v0.5.0.zip` attached.
+   `imdb-ratings-v0.5.0.zip` attached. For `imdb-ratings` the workflow first
+   builds `data/ratings.json.gz` from IMDb's data dumps, so the ZIP ships
+   with a database as of the release date (adds a few minutes and ~10 MB).
 
 ## Download counts
 

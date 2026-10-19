@@ -40,6 +40,15 @@ jobs:
           echo "ext=$ext" >> "$GITHUB_OUTPUT"
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
+      - name: Build the local ratings database (imdb-ratings only)
+        if: steps.meta.outputs.ext == 'imdb-ratings'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run the database build
+        if: steps.meta.outputs.ext == 'imdb-ratings'
+        run: node imdb-ratings/tools/build-local-db.mjs
+
       - name: Zip the extension folder
         run: zip -r "${{ steps.meta.outputs.ext }}-v${{ steps.meta.outputs.ver }}.zip" "${{ steps.meta.outputs.ext }}"
 

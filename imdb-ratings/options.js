@@ -21,8 +21,20 @@ async function refreshStats() {
   }
   $('stored').textContent = u.stored.toLocaleString();
   $('today').textContent = u.today.toLocaleString();
-  $('limit').textContent = u.limitHit ? '(limit reached; paused until tomorrow)' : '';
+  $('limit').textContent = u.limitHit ? '(limit reached; paused for now)' : '';
+  const l = u.local || {};
+  $('localStatus').textContent = l.present
+    ? l.titles.toLocaleString() + ' titles with at least ' + l.minVotes + ' votes, built ' + l.built + '.'
+    : 'Not present: no data/ratings.json.gz in the extension folder, so every lookup goes to OMDb.';
 }
+
+chrome.storage.sync.get('omdbFallback').then(({ omdbFallback = true }) => {
+  $('fallback').checked = omdbFallback;
+});
+$('fallback').addEventListener('change', async () => {
+  await chrome.storage.sync.set({ omdbFallback: $('fallback').checked });
+  say($('fallback').checked ? 'OMDb fallback on.' : 'OMDb fallback off: titles missing locally show n/a.');
+});
 
 async function ratingEntries() {
   const all = await chrome.storage.local.get(null);

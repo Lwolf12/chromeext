@@ -33,6 +33,27 @@ so more services can be added.
    OMDb accepts it.
 4. Open any of the four sites (reload if it was already open).
 
+## Local database (optional, recommended)
+
+IMDb publishes its ratings as daily data dumps. The extension can answer from
+a local copy of them, which uses no OMDb requests and works without a key:
+
+```bash
+node tools/build-local-db.mjs
+```
+
+That downloads about 240 MB from IMDb, keeps movies and series with at least
+25 votes (about 365,000 titles), and writes `data/ratings.json.gz` (about
+10 MB) inside the extension folder. Click the reload icon on the extension's
+card afterwards. The settings panel shows the database's size and build date.
+Run it again whenever you like; weekly is plenty, since ratings move slowly.
+Release ZIPs include a database built on the release date.
+
+Lookups go: stored answers, then the local database, then OMDb for titles
+the local file doesn't have (brand-new releases, titles under 25 votes). The
+OMDb fallback can be switched off on the settings panel. `--min-votes N`
+changes the cutoff; lower means more titles and a bigger file.
+
 ## Layout
 
 | File | Role |
@@ -40,7 +61,10 @@ so more services can be added.
 | `manifest.json` | Manifest V3. One content-script entry per site, each loading that site's adapter and then `content.js`; host permission for omdbapi.com only. |
 | `sites/netflix.js`, `sites/primevideo.js`, `sites/hulu.js`, `sites/hbomax.js` | Site adapters: which elements are title cards and hover previews, how to read the title (and movie/series type where available), and where the badge goes. |
 | `content.js` | Generic: watches the page, looks up titles as cards come near the viewport, draws badges, refreshes stale ones in the background. |
-| `background.js` | Service worker: OMDb lookups with a concurrency limit, permanent store in `chrome.storage.local`, daily request count, pause after a limit error. |
+| `background.js` | Service worker: answers from the store, then the local database, then OMDb (with a concurrency limit); permanent store in `chrome.storage.local`, daily request count, pause after a limit error. |
+| `local.js` | Loads `data/ratings.json.gz` and looks titles up in it. |
+| `tools/build-local-db.mjs` | Builds `data/ratings.json.gz` from IMDb's data dumps. |
+| `data/` | The built database. Not in git; release ZIPs include one. |
 | `badge.css` | Badge styling, including per-site placement tweaks. |
 | `options.html/js` | Key entry and test, usage counter, export/import/clear of the stored ratings. |
 
