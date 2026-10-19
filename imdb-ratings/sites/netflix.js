@@ -31,14 +31,20 @@ window.IMDBEXT_SITE = {
     },
     {
       // Featured banner at the top of the home page: [data-uia="billboard"]
-      // with aria-label "Featured Content: East of Eden, Limited Series".
-      // Its logo image has no usable alt, so the title comes from that label.
-      // The chip goes in the Play / More Info button row.
+      // with aria-label "Featured Content: East of Eden, Limited Series" or
+      // "Featured Content: Breaking Bad, Season 1, Show". Its logo image has
+      // no usable alt, so the title comes from that label, minus the trailing
+      // type and season segments. The chip goes in the Play / More Info row.
       kind: 'detail',
       selector: '[data-uia="billboard"]',
       titleOf(el) {
         let t = (el.getAttribute('aria-label') || '').replace(/^featured content:\s*/i, '').trim();
-        t = t.replace(/,\s*(limited series|mini-?series|series|show|movie|film|special|documentary)\s*$/i, '');
+        const tail = /,\s*(limited series|mini-?series|series|show|movie|film|special|documentary|(season|part|volume|chapter|book)\s*\d+|new season|new episodes?)\s*$/i;
+        let prev;
+        do {
+          prev = t;
+          t = t.replace(tail, '').trim();
+        } while (t !== prev);
         return t || null;
       },
       // The attribute row starts with "Show" or "Movie".
