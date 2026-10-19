@@ -17,6 +17,7 @@
     label.check { display: flex; gap: 7px; align-items: center; margin: 8px 0; }
     progress { width: 100%; height: 12px; margin-top: 4px; display: block; }
     #buildText { color: #555; font-size: 13px; margin-top: 4px; }
+    .note { flex: 1; min-width: 180px; padding: 6px 10px; border-radius: 4px; background: #fff4d6; border: 1px solid #e8c56a; color: #5a4300; font-weight: 600; font-size: 13px; }
     #omdbBox { margin: 6px 0 0 23px; }
     #testResult, #status { font-weight: 600; min-height: 1.4em; margin: 4px 0 0; word-break: break-word; }
     .ok { color: #2a7; }
@@ -32,7 +33,7 @@
   <section>
     <h2>Ratings database</h2>
     <p id="localStatus">…</p>
-    <div class="row"><button id="build" type="button">Update now</button></div>
+    <div class="row"><button id="build" type="button">Update now</button><span id="buildNote" class="note" hidden></span></div>
     <div id="buildProgress" hidden>
       <progress id="buildBar" max="1" value="0"></progress>
       <div id="buildText"></div>

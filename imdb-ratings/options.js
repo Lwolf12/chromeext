@@ -84,15 +84,22 @@ function sinceBuild() {
   return hours + ' hour' + (hours === 1 ? '' : 's') + ' ago';
 }
 
+function showNote(text) {
+  const n = $('buildNote');
+  n.textContent = text;
+  n.hidden = !text;
+}
+
 $('build').addEventListener('click', async () => {
   const fresh = builtAt && Date.now() - builtAt < 24 * 60 * 60 * 1000;
   if (fresh && Date.now() > confirmUntil) {
     confirmUntil = Date.now() + 8000;
-    say('Built ' + sinceBuild() + ', so it is current. Click again to rebuild anyway.', 'muted');
+    showNote('Built ' + sinceBuild() + ', so it is current. Click again to rebuild anyway.');
+    setTimeout(() => { if (Date.now() >= confirmUntil) showNote(''); }, 8200);
     return;
   }
   confirmUntil = 0;
-  say('');
+  showNote('');
   $('build').disabled = true;
   showBuild(await chrome.runtime.sendMessage({ type: 'build' }));
 });
