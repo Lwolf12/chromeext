@@ -68,7 +68,21 @@
       .replace(/^watch\s+/i, '')
       .replace(/\.$/, '')
       .trim();
+    // Episode tiles on a show's own page carry no show name at all
+    // ("Watch Season 1, Episode 1: The One Way Trip"); the page's hero has
+    // the rating, so these get nothing.
+    if (/^(season|episode|s\d+\s*e\d+)\b/i.test(title)) return null;
     return title || null;
+  }
+
+  // "Add to My List: Fired On Mars" / "Remove from My List: ..." gives the
+  // clean title on both the home banner and a title's own page.
+  function titleFromMyList(el) {
+    const add = el.querySelector('[data-testid="myList_button"]');
+    const t = strip((add && add.getAttribute('aria-label')) || '').replace(/^(add to|remove from) my list:\s*/i, '');
+    if (t) return t;
+    const img = el.querySelector('img[alt]');
+    return strip(img && img.alt) || null;
   }
 
   // data-sonic-type is "show" for movies too, but the link path is honest:
@@ -93,13 +107,7 @@
         // and so does the chip (badge.css).
         kind: 'detail',
         selector: 'section[data-testid$="_immersiveHero"]',
-        titleOf(el) {
-          const add = el.querySelector('[data-testid="myList_button"]');
-          const fromAdd = strip((add && add.getAttribute('aria-label')) || '').replace(/^(add to|remove from) my list:\s*/i, '');
-          if (fromAdd) return fromAdd;
-          const img = el.querySelector('img[alt]');
-          return strip(img && img.alt) || null;
-        },
+        titleOf: titleFromMyList,
         typeOf(el) {
           if (el.querySelector('[data-testid="metadata_total_seasons_hero"]')) return 'series';
           const play = el.querySelector('[data-testid="play_button"]');
@@ -109,6 +117,26 @@
         host(el) {
           const play = el.querySelector('[data-testid="play_button"]');
           return play ? play.parentElement : null;
+        },
+        place(host, badge) {
+          host.appendChild(badge);
+        },
+      },
+      {
+        // A title's own page (/show/<id> or /movie/<id>): the hero is
+        // <section data-testid="details-hero-container">. Resume and Restart
+        // fill their row, so the chip joins the My List / Rate / Trailer row.
+        kind: 'detail',
+        selector: 'section[data-testid="details-hero-container"]',
+        titleOf: titleFromMyList,
+        typeOf() {
+          if (/^\/movie\//.test(location.pathname)) return 'movie';
+          if (/^\/show\//.test(location.pathname)) return 'series';
+          return null;
+        },
+        host(el) {
+          const add = el.querySelector('[data-testid="myList_button"]');
+          return add ? add.parentElement : null;
         },
         place(host, badge) {
           host.appendChild(badge);

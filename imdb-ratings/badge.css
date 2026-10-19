@@ -85,7 +85,8 @@ a[data-uia="progress-card"] {
 /* HBO Max: the banner's chip joins the Watch / My List button row (14px
    gap). A full-size overlay link covers the banner at z-index 10; the
    buttons sit at 11, so the chip must too or clicks fall through. */
-section[data-testid$="_immersiveHero"] .imdbext-badge--detail {
+section[data-testid$="_immersiveHero"] .imdbext-badge--detail,
+section[data-testid="details-hero-container"] .imdbext-badge--detail {
   position: relative;
   z-index: 11;
   margin: 0;
@@ -98,6 +99,7 @@ section[data-testid$="_immersiveHero"] .imdbext-badge--detail {
 /* Banner chips sit in narrow button rows; a long "matched ..." note would
    wrap the row, so trim it (the tooltip still has the full text). */
 section[data-testid$="_immersiveHero"] .imdbext-info,
+section[data-testid="details-hero-container"] .imdbext-info,
 [data-uia="billboard-actions"] .imdbext-info,
 [data-testid="top-hero-card"] [data-testid="action-box"] .imdbext-info {
   white-space: nowrap;
