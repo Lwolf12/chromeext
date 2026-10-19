@@ -47,18 +47,23 @@ chrome.runtime.onInstalled.addListener((details) => {
 // run of this worker version; they get looked up again on demand.
 purgeMismatchedAnswers();
 
+const PURGE_VERSION = 2;
+
 async function purgeMismatchedAnswers() {
-  const { purgedFuzzy } = await chrome.storage.local.get('purgedFuzzy');
-  if (purgedFuzzy) return;
+  const { purgedFuzzy = 0 } = await chrome.storage.local.get('purgedFuzzy');
+  if (purgedFuzzy >= PURGE_VERSION) return;
   const all = await chrome.storage.local.get(null);
   const drop = [];
   for (const [k, v] of Object.entries(all)) {
-    if (!k.startsWith('r:') || !v || v.source !== 'omdb' || !v.matchedTitle) continue;
+    // Local-database answers legitimately differ from the asked title (the
+    // site may use the original title); everything else came from OMDb,
+    // including early entries that carry no source field.
+    if (!k.startsWith('r:') || !v || v.source === 'local' || !v.matchedTitle) continue;
     const asked = k.slice(2).replace(/^(movie|series):/, '');
     if (!sameTitle(asked, v.matchedTitle)) drop.push(k);
   }
   if (drop.length) await chrome.storage.local.remove(drop);
-  await chrome.storage.local.set({ purgedFuzzy: 1 });
+  await chrome.storage.local.set({ purgedFuzzy: PURGE_VERSION });
 }
 
 chrome.runtime.onStartup.addListener(() => {
