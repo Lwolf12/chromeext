@@ -64,6 +64,8 @@ To see the current flag names, open a watch page, press F12, and run:
 Object.keys(ytcfg.get('EXPERIMENT_FLAGS')).filter(k => /watch|rail|grid/.test(k))
 ```
 
+Or point Claude Code at this folder and say "YouTube moved things again."
+
 ## Permissions
 
 The extension asks for nothing beyond running on `www.youtube.com`. It makes
