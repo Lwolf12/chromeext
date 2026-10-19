@@ -2,9 +2,11 @@
 
 Chrome extension that overlays the IMDb user rating on every title card
 while browsing Netflix, Prime Video, Hulu and HBO Max. Each card gets a small
-badge with the rating; hovering a title adds the year and vote count to the
-site's own preview where it has one; clicking a badge opens the IMDb page.
-Each site is a small adapter file, so more services can be added.
+badge with the rating. On Netflix, Prime Video and Hulu, hovering a title
+opens the site's own preview, which gets an IMDb line with the year and vote
+count; click that line to open the IMDb page. HBO Max has no preview, so
+there the badge on the card is the link. Each site is a small adapter file,
+so more services can be added.
 
 | Site | Card badge | Hover details | Notes |
 | --- | --- | --- | --- |
