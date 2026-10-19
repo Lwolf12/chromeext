@@ -27,6 +27,12 @@ const queue = [];
 
 chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 
+// First install: nothing works without an OMDb key, so show the settings
+// panel right away rather than leaving the user with blank cards.
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') chrome.runtime.openOptionsPage();
+});
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === 'rating' && typeof msg.title === 'string') {
     const kind = msg.kind === 'movie' || msg.kind === 'series' ? msg.kind : null;

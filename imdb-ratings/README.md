@@ -15,7 +15,10 @@ Planned: Hulu and others, each as a small site adapter.
 ## Setup
 
 1. Get a free OMDb API key at <https://www.omdbapi.com/apikey.aspx> (1,000
-   lookups a day) and activate it from the email they send.
+   lookups a day) and activate it from the email they send. The key comes
+   from OMDb, not IMDb: IMDb itself doesn't issue keys, and OMDb is a
+   separate service that mirrors IMDb's ratings. Without a key the
+   extension loads but shows no badges.
 2. Download this repository (green **Code** button, **Download ZIP**) and
    extract it, or clone it. In Chrome open `chrome://extensions`, turn on
    **Developer mode**, click
