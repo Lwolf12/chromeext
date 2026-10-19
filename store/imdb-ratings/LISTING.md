@@ -28,6 +28,8 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 > week; the weekly refresh can be switched off for metered connections).
 > Lookups then happen locally, on your device, with no requests to anyone.
 > Nothing downloads until you click Update now on the settings panel.
+> Only use some of the four services? Untick the others in the settings
+> panel and the extension stays idle there.
 >
 > OPTIONAL: NEW RELEASES
 > Brand-new titles are not in IMDb's data yet. If you want those too, get a
@@ -85,7 +87,7 @@ featuring): skip for the first submission.
 | `offscreen` | Building the database (downloading and parsing IMDb's dumps) takes minutes and runs in a Web Worker, which the service worker cannot host; an offscreen document hosts the worker. |
 | Host permission `https://datasets.imdbws.com/` | Downloads IMDb's public ratings data dumps to build the local database. |
 | Host permission `https://www.omdbapi.com/` | Optional fallback lookups for titles not in the local database, only when the user has entered an OMDb API key. |
-| Content scripts on `www.netflix.com`, `www.primevideo.com`, `www.amazon.com`, `www.hulu.com`, `play.hbomax.com` | Reads the title names shown on each site's title cards, banners and previews and draws the rating badge next to them. amazon.com is matched because Prime Video is served from amazon.com in the US. |
+| Content scripts on `www.netflix.com`, `www.primevideo.com`, `www.amazon.com`, `www.hulu.com`, `play.hbomax.com` | Reads the title names shown on each site's title cards, banners and previews and draws the rating badge next to them. amazon.com is matched because Prime Video is served from amazon.com in the US. Each service can be switched off on the settings panel, after which the script does nothing on that site beyond one settings read. |
 
 **Are you using remote code?** No. All code is in the package; `importScripts` loads only packaged files.
 

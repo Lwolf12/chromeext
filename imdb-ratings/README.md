@@ -34,6 +34,9 @@ so more services can be added.
    extension's toolbar icon), **Save**, and use **Test key**. The key comes
    from OMDb, not IMDb: IMDb itself doesn't issue keys, and OMDb is a
    separate service that mirrors IMDb's ratings.
+4. Optional: under **Sites** on the same panel, untick any service you
+   don't use. The extension then stays idle on that site (on Prime Video
+   that includes all of amazon.com). Changes apply to open tabs at once.
 
 ## Local database
 
@@ -69,7 +72,7 @@ key is set. The OMDb fallback can be switched off on the settings panel.
 | `tools/build-local-db.mjs` | Builds `data/ratings.json.gz` from IMDb's data dumps. |
 | `data/` | The built database. Not in git and not in release ZIPs; each user builds their own. |
 | `badge.css` | Badge styling, including per-site placement tweaks. |
-| `options.html/js` | Key entry and test, usage counter, export/import/clear of the stored ratings. |
+| `options.html/js` | Per-site on/off, key entry and test, usage counter, export/import/clear of the stored ratings. |
 
 ## Adding another streaming site
 

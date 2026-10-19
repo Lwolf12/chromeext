@@ -194,18 +194,54 @@
   }
 
   // Initial pass, then follow the single-page app as it adds rows and popups.
-  scan(document);
+  let mo = null;
   let pending = null;
-  new MutationObserver(() => {
-    if (pending) return;
-    pending = setTimeout(() => {
+
+  function start() {
+    if (mo) return;
+    scan(document);
+    mo = new MutationObserver(() => {
+      if (pending) return;
+      pending = setTimeout(() => {
+        pending = null;
+        scan(document);
+      }, 200);
+    });
+    mo.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: site.watchAttributes || ['aria-label'],
+    });
+  }
+
+  // Remove every badge and forget what was processed, so turning the site
+  // back on starts clean. A lookup still in flight finds its PROCESSED
+  // marker gone and draws nothing.
+  function stop() {
+    if (mo) {
+      mo.disconnect();
+      mo = null;
+    }
+    if (pending) {
+      clearTimeout(pending);
       pending = null;
-      scan(document);
-    }, 200);
-  }).observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: site.watchAttributes || ['aria-label'],
+    }
+    io.disconnect();
+    for (const b of document.querySelectorAll('.imdbext-badge')) b.remove();
+    for (const el of document.querySelectorAll('[' + PROCESSED + ']')) el.removeAttribute(PROCESSED);
+  }
+
+  // The settings panel keeps {sites: {netflix: true, ...}} in sync storage;
+  // a site missing from it is on. One read on a disabled site, then nothing.
+  const enabled = (sites) => !sites || sites[site.name] !== false;
+
+  chrome.storage.sync.get('sites').then(({ sites }) => {
+    if (enabled(sites)) start();
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'sync' || !changes.sites) return;
+    if (enabled(changes.sites.newValue)) start();
+    else stop();
   });
 })();

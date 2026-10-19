@@ -119,6 +119,27 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+// --------------------------------------------------------------- sites
+
+// Which services the content script runs on. Stored as one object keyed by
+// the adapter's name; a missing key means on, so new sites default to on.
+const SITE_BOXES = [...document.querySelectorAll('input.site')];
+
+async function loadSites() {
+  const { sites = {} } = await chrome.storage.sync.get('sites');
+  for (const box of SITE_BOXES) box.checked = sites[box.dataset.site] !== false;
+}
+
+for (const box of SITE_BOXES) {
+  box.addEventListener('change', async () => {
+    const sites = {};
+    for (const b of SITE_BOXES) sites[b.dataset.site] = b.checked;
+    await chrome.storage.sync.set({ sites });
+    const label = box.parentElement.textContent.trim().split(' (')[0];
+    say(label + (box.checked ? ' on.' : ' off.'));
+  });
+}
+
 // ---------------------------------------------------------------- OMDb
 
 // The checkbox means "OMDb is in use": fallback enabled and a key saved.
@@ -232,5 +253,6 @@ $('clear').addEventListener('click', async () => {
 
 // ------------------------------------------------------------------ go
 
+loadSites();
 loadOmdb();
 refreshStats();
