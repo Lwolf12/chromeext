@@ -82,6 +82,18 @@ a[data-uia="progress-card"] {
   font-size: 12px;
 }
 
+/* HBO Max: the banner's chip joins the Watch / My List button row (14px
+   gap). A full-size overlay link covers the banner at z-index 10; the
+   buttons sit at 11, so the chip must too or clicks fall through. */
+section[data-testid$="_immersiveHero"] .imdbext-badge--detail {
+  position: relative;
+  z-index: 11;
+  margin: 0;
+  align-self: center;
+  font-size: 14px;
+  padding: 6px 10px 6px 8px;
+}
+
 /* HBO Max: hovering a tile reveals a "..." menu button top-right and HBO's
    own "New" tags sit top-left, so the badge goes bottom-right. */
 [data-testid$="_tileImage"] > .imdbext-badge--card,

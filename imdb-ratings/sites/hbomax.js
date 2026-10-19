@@ -85,6 +85,36 @@
 
     targets: [
       {
+        // Top banner: <section data-testid="<uuid>_immersiveHero">, one per
+        // featured title, rotating. The "Add to My List: Youth" button gives
+        // the clean title; the play button's label ("Watch Youth, Season 1,
+        // Episode 1: ...") and a seasons count mark series. A full-size
+        // overlay link (z-index 10) covers the banner; the buttons sit at 11,
+        // and so does the chip (badge.css).
+        kind: 'detail',
+        selector: 'section[data-testid$="_immersiveHero"]',
+        titleOf(el) {
+          const add = el.querySelector('[data-testid="myList_button"]');
+          const fromAdd = strip((add && add.getAttribute('aria-label')) || '').replace(/^(add to|remove from) my list:\s*/i, '');
+          if (fromAdd) return fromAdd;
+          const img = el.querySelector('img[alt]');
+          return strip(img && img.alt) || null;
+        },
+        typeOf(el) {
+          if (el.querySelector('[data-testid="metadata_total_seasons_hero"]')) return 'series';
+          const play = el.querySelector('[data-testid="play_button"]');
+          if (play && /season \d+|episode \d+/i.test(strip(play.getAttribute('aria-label')))) return 'series';
+          return null;
+        },
+        host(el) {
+          const play = el.querySelector('[data-testid="play_button"]');
+          return play ? play.parentElement : null;
+        },
+        place(host, badge) {
+          host.appendChild(badge);
+        },
+      },
+      {
         kind: 'card',
         selector: 'a[data-testid$="_tile"]',
         titleOf: titleFromAria,
