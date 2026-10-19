@@ -11,7 +11,7 @@ so more services can be added.
 | Site | Card badge | Hover details | Notes |
 | --- | --- | --- | --- |
 | Netflix | top-right of each tile | line under the preview popup's buttons; in the featured banner, a chip beside Play / More Info | no year or type on cards; the popup's type and year lines pick the right same-named title and also correct the card |
-| Prime Video | top-right of each tile; hidden while the card is expanded | chip in the expanded card's metadata row; in the top banner, a chip beside the Watch now button | season suffixes stripped; movie/series type passed to OMDb |
+| Prime Video | top-right of each tile; hidden while the card is expanded | chip in the expanded card's metadata row; in the top banner, a chip beside the Watch now button; on a title's own page, a chip in the metadata row after the year | season suffixes stripped; movie/series type and, on title pages, the year passed along |
 | Hulu | top-right of each tile | line under the preview panel's metadata; also in the top banner | movie/series type from the link path |
 | HBO Max | bottom-right of each poster | none (HBO Max has no hover preview); the badge tooltip works; in the top banner, a chip beside the Watch button; on a title's own page, a chip in the My List / Rate / Trailer row | title parsed from the tile's accessibility label, including episode tiles; movie/series type from the link path; episode tiles on a title's own page name no show, so they get no badge |
 

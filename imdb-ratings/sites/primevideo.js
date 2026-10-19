@@ -43,6 +43,10 @@
     return null;
   }
 
+  function visibleYearBadge(el) {
+    return [...el.querySelectorAll('[data-automation-id="release-year-badge"]')].find((y) => y.getBoundingClientRect().width > 0) || null;
+  }
+
   function articleTitle(article) {
     return cleanTitle(article.getAttribute('data-card-title'));
   }
@@ -88,6 +92,47 @@
         },
         host(el) {
           return el.querySelector('[data-testid="action-box"]') || el;
+        },
+        place(host, badge) {
+          host.appendChild(badge);
+        },
+      },
+      {
+        // A title's own page (/gp/video/detail/<asin>): the hero is
+        // [data-testid="atf-component-next-gen"], with the title as the alt
+        // of the title-art image and a metadata row (star rating, release
+        // year, genres) that the chip joins. The row exists twice for
+        // different widths; only the visible copy gets the chip.
+        kind: 'detail',
+        selector: '[data-testid="atf-component-next-gen"]',
+        titleOf(el) {
+          const art = el.querySelector('[data-testid="title-art"] img[alt]');
+          const fromArt = cleanTitle((art && art.alt) || '');
+          if (fromArt) return fromArt;
+          // "Watch Carrie - Season 1 | Prime Video"
+          return cleanTitle(document.title.replace(/^watch\s+/i, '').replace(/\s*\|\s*prime video\s*$/i, ''));
+        },
+        typeOf(el) {
+          const play = el.querySelector('[data-automation-id="dp-atf-play-button"]');
+          const badge = el.querySelector('[data-automation-id="metadata-badge"]');
+          if (
+            /\bseason\b/i.test(document.title) ||
+            (play && /episode/i.test(play.textContent)) ||
+            (badge && /series/i.test(badge.textContent))
+          ) {
+            return 'series';
+          }
+          if (el.querySelector('[data-automation-id="runtime-badge"]')) return 'movie';
+          return null;
+        },
+        yearOf(el) {
+          const y = visibleYearBadge(el);
+          const m = y && y.textContent.match(/\b(19|20)\d\d\b/);
+          return m ? m[0] : null;
+        },
+        host(el) {
+          const y = visibleYearBadge(el);
+          return y ? y.parentElement : null;
         },
         place(host, badge) {
           host.appendChild(badge);

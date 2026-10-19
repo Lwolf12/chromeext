@@ -82,6 +82,14 @@ a[data-uia="progress-card"] {
   font-size: 12px;
 }
 
+/* Prime Video title page: the metadata row (stars, year, genres) is a
+   16px-gap flex row, so the chip needs no margin of its own. */
+[data-testid="atf-component-next-gen"] .imdbext-badge--detail {
+  margin: 0;
+  padding: 2px 6px 2px 5px;
+  font-size: 12px;
+}
+
 /* HBO Max: the banner's chip joins the Watch / My List button row (14px
    gap). A full-size overlay link covers the banner at z-index 10; the
    buttons sit at 11, so the chip must too or clicks fall through. */
