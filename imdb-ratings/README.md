@@ -75,7 +75,8 @@ key is set. The OMDb fallback can be switched off on the settings panel.
 
 Create `sites/<name>.js` defining `window.IMDBEXT_SITE` in the same shape as
 the existing adapters: a `targets` list where each entry has a `kind`
-(`card` or `detail`), a `selector`, `titleOf(el)`, `host(el)`, and
+(`card` or `detail`), a `selector`, `titleOf(el)` (a title, or a list of
+candidates tried in order), `host(el)`, and
 optionally `typeOf(el)` (returns `movie` or `series`) and
 `place(host, badge)`. Add a `content_scripts` entry in the manifest matching
 that site's URLs that loads the adapter before `content.js`, and put any

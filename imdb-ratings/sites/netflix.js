@@ -31,21 +31,22 @@ window.IMDBEXT_SITE = {
     },
     {
       // Featured banner at the top of the home page: [data-uia="billboard"]
-      // with aria-label "Featured Content: East of Eden, Limited Series" or
-      // "Featured Content: Breaking Bad, Season 1, Show". Its logo image has
-      // no usable alt, so the title comes from that label, minus the trailing
-      // type and season segments. The chip goes in the Play / More Info row.
+      // with aria-label "Featured Content: <title>[, <season name>][, Show]".
+      // The season name is free text ("Season 1", "East Blue", "Limited
+      // Series") and the logo image has no usable alt, so the label is the
+      // only title source. Candidates are tried in order: the whole label
+      // first (titles can contain commas), then with trailing comma segments
+      // dropped one at a time. The chip goes in the Play / More Info row.
       kind: 'detail',
       selector: '[data-uia="billboard"]',
       titleOf(el) {
         let t = (el.getAttribute('aria-label') || '').replace(/^featured content:\s*/i, '').trim();
-        const tail = /,\s*(limited series|mini-?series|series|show|movie|film|special|documentary|(season|part|volume|chapter|book)\s*\d+|new season|new episodes?)\s*$/i;
-        let prev;
-        do {
-          prev = t;
-          t = t.replace(tail, '').trim();
-        } while (t !== prev);
-        return t || null;
+        t = t.replace(/,\s*(show|movie|film)\s*$/i, '').trim();
+        if (!t) return null;
+        const parts = t.split(/\s*,\s*/);
+        const out = [];
+        for (let n = parts.length; n >= 1; n--) out.push(parts.slice(0, n).join(', '));
+        return out;
       },
       // The attribute row starts with "Show" or "Movie".
       typeOf(el) {

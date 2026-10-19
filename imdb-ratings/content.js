@@ -41,10 +41,17 @@
     { rootMargin: '300px 600px' }
   );
 
+  // An adapter's titleOf may return one title or a list of candidates to try
+  // in order (Netflix's banner label is "title, season name", and the season
+  // name is free text, so "One Piece, East Blue" is tried before "One Piece").
+  function titlesOf(target, el) {
+    return [].concat(target.titleOf(el)).filter((t) => typeof t === 'string' && t);
+  }
+
   function scan(root) {
     for (const target of site.targets) {
       for (const el of root.querySelectorAll(target.selector)) {
-        const title = target.titleOf(el);
+        const title = titlesOf(target, el)[0];
         if (!title) continue;
         const host = target.host(el);
         if (!host) continue;
@@ -61,29 +68,37 @@
   }
 
   async function decorate(el, target) {
-    const title = el.getAttribute(PROCESSED);
-    if (!title) return;
+    const key = el.getAttribute(PROCESSED);
+    if (!key) return;
+    const candidates = titlesOf(target, el);
+    if (candidates[0] !== key) return;
 
     // Optional hint from the site: 'movie' or 'series', to sharpen the match.
     const kind = typeof target.typeOf === 'function' ? target.typeOf(el) || null : null;
 
+    // Try each candidate until one has a rating; keep the last answer otherwise.
+    let title = key;
     let result;
-    try {
-      result = await chrome.runtime.sendMessage({ type: 'rating', title, kind });
-    } catch (e) {
-      // Usually "Extension context invalidated" after a reload of the
-      // extension; a page reload picks things up again.
-      warnOnce('context', String(e));
-      return;
-    }
-    if (el.getAttribute(PROCESSED) !== title) return;
-    if (!result) {
-      warnOnce('empty', 'background worker sent no reply for "' + title + '"');
-      return;
-    }
-    if (result.error) {
-      warnOnce(result.error, title);
-      return;
+    for (const candidate of candidates) {
+      title = candidate;
+      try {
+        result = await chrome.runtime.sendMessage({ type: 'rating', title, kind });
+      } catch (e) {
+        // Usually "Extension context invalidated" after a reload of the
+        // extension; a page reload picks things up again.
+        warnOnce('context', String(e));
+        return;
+      }
+      if (el.getAttribute(PROCESSED) !== key) return;
+      if (!result) {
+        warnOnce('empty', 'background worker sent no reply for "' + title + '"');
+        return;
+      }
+      if (result.error) {
+        warnOnce(result.error, title);
+        return;
+      }
+      if (result.rating != null) break;
     }
 
     const host = target.host(el);
@@ -110,7 +125,7 @@
       } catch (e) {
         return;
       }
-      if (fresh && !fresh.error && badge.isConnected && el.getAttribute(PROCESSED) === title) {
+      if (fresh && !fresh.error && badge.isConnected && el.getAttribute(PROCESSED) === key) {
         render(badge, title, fresh, target.kind);
         if (target.kind === 'detail' && kind) syncCards(title, fresh);
       }
