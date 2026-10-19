@@ -26,13 +26,15 @@ so more services can be added.
 2. Open any of the four sites (reload if it was already open). The ZIP
    includes a local ratings database (next section), so badges appear
    without any further setup.
-3. Optional: an OMDb API key fills in titles the local database lacks,
-   such as brand-new releases. Get a free one at
-   <https://www.omdbapi.com/apikey.aspx> (1,000 lookups a day), activate
-   it from the email they send, then open the settings panel (click the
-   extension's toolbar icon), paste the key, **Save**, and use **Test key**.
-   The key comes from OMDb, not IMDb: IMDb itself doesn't issue keys, and
-   OMDb is a separate service that mirrors IMDb's ratings.
+3. The database in the ZIP is a snapshot. Titles released after it was
+   built, or with fewer than 25 votes, show `n/a` until you either rebuild
+   the database periodically (next section; needs Node, no key) or add a
+   free OMDb API key so those titles are looked up as you browse (no Node).
+   For the key: get one at <https://www.omdbapi.com/apikey.aspx> (1,000
+   lookups a day), activate it from the email they send, open the settings
+   panel (click the extension's toolbar icon), paste it, **Save**, and use
+   **Test key**. The key comes from OMDb, not IMDb: IMDb itself doesn't
+   issue keys, and OMDb is a separate service that mirrors IMDb's ratings.
 
 ## Local database
 
