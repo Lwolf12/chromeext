@@ -4,65 +4,75 @@
   <meta charset="utf-8">
   <title>IMDb Ratings settings</title>
   <style>
-    body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; width: 380px; color: #222; }
-    h1 { font-size: 16px; margin: 0 0 12px; }
-    h2 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; color: #666; }
-    label { display: block; font-weight: 600; margin-bottom: 4px; }
-    input[type=text] { width: 100%; box-sizing: border-box; padding: 6px 8px; font: inherit; border: 1px solid #aaa; border-radius: 4px; }
+    body { font: 14px/1.45 system-ui, sans-serif; margin: 0; padding: 18px 20px 20px; width: 400px; color: #222; }
+    h1 { font-size: 16px; margin: 0 0 14px; }
+    section { margin: 0 0 18px; padding: 0 0 16px; border-bottom: 1px solid #e3e3e3; }
+    section:last-of-type { border-bottom: 0; }
+    h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px; color: #666; }
+    p { margin: 6px 0; }
+    .muted { color: #666; font-size: 13px; }
+    .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
     button { padding: 6px 14px; font: inherit; }
-    .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-    p { margin: 8px 0 0; color: #555; }
-    #status { color: #2a7; font-weight: 600; min-height: 1.5em; margin-top: 6px; }
-    #testResult { margin-top: 6px; font-weight: 600; min-height: 1.5em; word-break: break-word; }
-    #testResult.ok { color: #2a7; }
-    #testResult.bad { color: #c33; }
-    label:has(input[type=checkbox]) { font-weight: normal; display: flex; gap: 6px; align-items: center; }
-    progress { width: 100%; height: 12px; margin-top: 8px; }
+    input[type=text] { flex: 1; min-width: 0; padding: 6px 8px; font: inherit; border: 1px solid #aaa; border-radius: 4px; }
+    label.check { display: flex; gap: 7px; align-items: center; margin: 8px 0; }
+    progress { width: 100%; height: 12px; margin-top: 4px; display: block; }
     #buildText { color: #555; font-size: 13px; margin-top: 4px; }
-    #stats { margin: 0; padding-left: 18px; color: #333; }
+    #omdbBox { margin: 6px 0 0 23px; }
+    #testResult, #status { font-weight: 600; min-height: 1.4em; margin: 4px 0 0; word-break: break-word; }
+    .ok { color: #2a7; }
+    .bad { color: #c33; }
+    details summary { cursor: pointer; color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; }
+    details ul { margin: 8px 0; padding-left: 18px; }
     a { color: #06c; }
   </style>
 </head>
 <body>
   <h1>IMDb Ratings for Streaming</h1>
 
-  <label for="key">OMDb API key</label>
-  <input id="key" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. 1a2b3c4d">
-  <div class="row"><button id="save">Save</button><button id="test" type="button">Test key</button></div>
-  <div id="testResult"></div>
-  <p>Ratings come from the <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">OMDb API</a>.
-     Request a free key there (1,000 lookups a day), activate it from the email they send, and paste it above.
-     The key is from OMDb, not IMDb; IMDb doesn't issue keys. With the local database below in place the key is
-     optional: it only adds titles the database lacks. Without both, nothing shows on the video sites.</p>
+  <section>
+    <h2>Ratings database</h2>
+    <p id="localStatus">…</p>
+    <div class="row"><button id="build" type="button">Update now</button></div>
+    <div id="buildProgress" hidden>
+      <progress id="buildBar" max="1" value="0"></progress>
+      <div id="buildText"></div>
+    </div>
+    <label class="check"><input id="auto" type="checkbox"> Refresh automatically every week</label>
+    <p class="muted">Built in your browser from IMDb's public data: about 240 MB downloaded from
+       IMDb, a few minutes. Lookups then happen locally with no requests to anyone.</p>
+  </section>
 
-  <h2>Local database</h2>
-  <p id="localStatus">…</p>
-  <div class="row"><button id="build" type="button">Update now</button></div>
-  <div id="buildProgress" hidden>
-    <progress id="buildBar" max="1" value="0"></progress>
-    <div id="buildText"></div>
-  </div>
-  <p><label><input id="auto" type="checkbox"> Refresh automatically every week</label></p>
-  <p><label><input id="fallback" type="checkbox"> Ask OMDb for titles the local database doesn't have</label></p>
-  <p>The database is built in your browser from IMDb's public data dumps (about
-     240 MB downloaded from IMDb, a few minutes). It then answers locally without
-     any requests. It isn't shipped with the extension because IMDb licenses that
-     data for each person's own use.</p>
+  <section>
+    <label class="check"><input id="useOmdb" type="checkbox"> Also look up titles the database doesn't have, using OMDb</label>
+    <div id="omdbBox" hidden>
+      <div class="row"><input id="key" type="text" autocomplete="off" spellcheck="false" placeholder="OMDb API key">
+        <button id="save">Save</button><button id="test" type="button">Test</button></div>
+      <div id="testResult"></div>
+      <p class="muted">Covers brand-new releases and titles with few votes. Get a free key at
+         <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com</a>
+         (1,000 lookups a day), click the activation link in their email, and paste it here.
+         OMDb is a separate service that mirrors IMDb's ratings; IMDb itself doesn't issue keys.</p>
+    </div>
+  </section>
 
-  <h2>Stored ratings</h2>
-  <ul id="stats">
-    <li>Titles stored: <span id="stored">…</span></li>
-    <li>OMDb requests today: <span id="today">…</span> / 1,000 <span id="limit"></span></li>
-  </ul>
-  <p>Answers are kept permanently and re-checked after 30 days (3 days for titles OMDb didn't know).
-     If the daily limit is reached, stored ratings keep showing and new lookups pause for an hour.</p>
-  <div class="row">
-    <button id="export" type="button">Export JSON</button>
-    <button id="import" type="button">Import JSON</button>
-    <button id="clear" type="button">Clear all</button>
-    <input id="file" type="file" accept="application/json,.json" hidden>
-  </div>
-  <div id="status"></div>
+  <section>
+    <details>
+      <summary>Advanced</summary>
+      <ul>
+        <li>Answers stored: <span id="stored">…</span></li>
+        <li>OMDb requests today: <span id="today">…</span> / 1,000 <span id="limit"></span></li>
+      </ul>
+      <p class="muted">Every answer is kept and re-checked after 30 days (3 days for misses).</p>
+      <div class="row">
+        <button id="export" type="button">Export</button>
+        <button id="import" type="button">Import</button>
+        <button id="clear" type="button">Clear stored answers</button>
+        <input id="file" type="file" accept="application/json,.json" hidden>
+      </div>
+    </details>
+  </section>
+
+  <div id="status" class="ok"></div>
 
   <script src="options.js"></script>
 </body>

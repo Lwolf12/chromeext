@@ -1,8 +1,9 @@
 const $ = (id) => document.getElementById(id);
-const status = $('status');
 
-function say(text) {
-  status.textContent = text;
+function say(text, cls) {
+  const s = $('status');
+  s.textContent = text;
+  s.className = cls || 'ok';
 }
 
 const STALE_WORKER =
@@ -19,6 +20,8 @@ function ago(ts) {
   const days = Math.floor((Date.now() - ts) / 86400000);
   return days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago';
 }
+
+// ------------------------------------------------------------ database
 
 function showBuild(build) {
   const box = $('buildProgress');
@@ -53,46 +56,23 @@ async function refreshStats() {
     u = null;
   }
   if (!u) {
-    say(STALE_WORKER);
+    say(STALE_WORKER, 'bad');
     return;
   }
+  const l = u.local || {};
+  $('localStatus').textContent = l.present
+    ? l.titles.toLocaleString() + ' titles, built ' + l.built + ' (' + ago(l.builtAt) + ').'
+    : 'Not built yet. Click Update now; it takes a few minutes.';
+  $('auto').checked = u.autoRefresh !== false;
+  showBuild(u.build);
   $('stored').textContent = u.stored.toLocaleString();
   $('today').textContent = u.today.toLocaleString();
   $('limit').textContent = u.limitHit ? '(limit reached; paused for now)' : '';
-  const l = u.local || {};
-  $('localStatus').textContent = l.present
-    ? l.titles.toLocaleString() + ' titles with at least ' + l.minVotes + ' votes, built ' + l.built + ' (' + ago(l.builtAt) + ').'
-    : 'Not built yet. Click Update now (a few minutes), or add an OMDb key above instead. Without one of the two, nothing shows.';
-  $('auto').checked = u.autoRefresh !== false;
-  showBuild(u.build);
 }
-
-async function ratingEntries() {
-  const all = await chrome.storage.local.get(null);
-  const out = {};
-  for (const [k, v] of Object.entries(all)) if (k.startsWith('r:')) out[k] = v;
-  return out;
-}
-
-chrome.storage.sync.get('omdbKey').then(({ omdbKey }) => {
-  if (omdbKey) $('key').value = omdbKey;
-});
-refreshStats();
-
-// Live progress while a build runs: the worker writes its state to session
-// storage, which fires this for every update.
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'session' && changes.buildState) {
-    showBuild(changes.buildState.newValue);
-    const s = changes.buildState.newValue;
-    if (s && (s.status === 'done' || s.status === 'error')) refreshStats();
-  }
-});
 
 $('build').addEventListener('click', async () => {
   $('build').disabled = true;
-  const state = await chrome.runtime.sendMessage({ type: 'build' });
-  showBuild(state);
+  showBuild(await chrome.runtime.sendMessage({ type: 'build' }));
 });
 
 $('auto').addEventListener('change', async () => {
@@ -100,12 +80,43 @@ $('auto').addEventListener('change', async () => {
   say($('auto').checked ? 'Automatic weekly refresh on.' : 'Automatic refresh off; use Update now when you want.');
 });
 
+// Live progress while a build runs: the worker writes its state to session
+// storage, which fires this for every update.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'session' && changes.buildState) {
+    const s = changes.buildState.newValue;
+    showBuild(s);
+    if (s && (s.status === 'done' || s.status === 'error')) refreshStats();
+  }
+});
+
+// ---------------------------------------------------------------- OMDb
+
+// The checkbox means "OMDb is in use": fallback enabled and a key saved.
+// Ticking it reveals the key fields; unticking disables the fallback but
+// keeps the key so it can be turned back on without re-entering it.
+async function loadOmdb() {
+  const { omdbKey = '', omdbFallback = true } = await chrome.storage.sync.get(['omdbKey', 'omdbFallback']);
+  $('key').value = omdbKey;
+  const on = !!omdbKey && omdbFallback;
+  $('useOmdb').checked = on;
+  $('omdbBox').hidden = !on;
+}
+
+$('useOmdb').addEventListener('change', async () => {
+  const on = $('useOmdb').checked;
+  $('omdbBox').hidden = !on;
+  await chrome.storage.sync.set({ omdbFallback: on });
+  if (on && !$('key').value.trim()) $('key').focus();
+  else say(on ? 'OMDb lookups on.' : 'OMDb lookups off.');
+});
+
 $('save').addEventListener('click', async () => {
   const omdbKey = $('key').value.trim();
-  await chrome.storage.sync.set({ omdbKey });
+  await chrome.storage.sync.set({ omdbKey, omdbFallback: !!omdbKey });
   // A new key means an earlier "limit reached" pause no longer applies.
   await chrome.storage.local.remove(['limitHitDay', 'limitPauseUntil']);
-  say(omdbKey ? 'Saved. Reload the video site to see ratings.' : 'Key cleared.');
+  say(omdbKey ? 'Key saved.' : 'Key cleared.');
   refreshStats();
 });
 
@@ -115,7 +126,7 @@ $('test').addEventListener('click', async () => {
   out.textContent = 'Testing…';
   // Test whatever is in the box, saving it first so the worker sees it.
   const omdbKey = $('key').value.trim();
-  await chrome.storage.sync.set({ omdbKey });
+  await chrome.storage.sync.set({ omdbKey, omdbFallback: !!omdbKey });
   let r;
   try {
     r = await chrome.runtime.sendMessage({ type: 'test' });
@@ -132,13 +143,14 @@ $('test').addEventListener('click', async () => {
   refreshStats();
 });
 
-chrome.storage.sync.get('omdbFallback').then(({ omdbFallback = true }) => {
-  $('fallback').checked = omdbFallback;
-});
-$('fallback').addEventListener('change', async () => {
-  await chrome.storage.sync.set({ omdbFallback: $('fallback').checked });
-  say($('fallback').checked ? 'OMDb fallback on.' : 'OMDb fallback off: titles missing locally show n/a.');
-});
+// ------------------------------------------------------------ advanced
+
+async function ratingEntries() {
+  const all = await chrome.storage.local.get(null);
+  const out = {};
+  for (const [k, v] of Object.entries(all)) if (k.startsWith('r:')) out[k] = v;
+  return out;
+}
 
 $('export').addEventListener('click', async () => {
   const entries = await ratingEntries();
@@ -149,7 +161,7 @@ $('export').addEventListener('click', async () => {
   a.download = 'imdb-ratings-' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  say('Exported ' + Object.keys(entries).length + ' titles.');
+  say('Exported ' + Object.keys(entries).length + ' answers.');
 });
 
 $('import').addEventListener('click', () => $('file').click());
@@ -161,7 +173,7 @@ $('file').addEventListener('change', async () => {
   try {
     data = JSON.parse(await file.text());
   } catch (e) {
-    say('That file is not valid JSON.');
+    say('That file is not valid JSON.', 'bad');
     return;
   }
   const existing = await ratingEntries();
@@ -185,6 +197,11 @@ $('file').addEventListener('change', async () => {
 $('clear').addEventListener('click', async () => {
   const keys = Object.keys(await ratingEntries());
   await chrome.storage.local.remove(keys);
-  say('Cleared ' + keys.length + ' stored ratings.');
+  say('Cleared ' + keys.length + ' stored answers.');
   refreshStats();
 });
+
+// ------------------------------------------------------------------ go
+
+loadOmdb();
+refreshStats();
