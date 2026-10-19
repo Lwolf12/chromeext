@@ -59,7 +59,7 @@ async function purgeMismatchedAnswers() {
     // site may use the original title); everything else came from OMDb,
     // including early entries that carry no source field.
     if (!k.startsWith('r:') || !v || v.source === 'local' || !v.matchedTitle) continue;
-    const asked = k.slice(2).replace(/^(movie|series):/, '');
+    const asked = k.slice(2).replace(/^(movie|series):/, '').replace(/^\d{4}:/, '');
     if (!sameTitle(asked, v.matchedTitle)) drop.push(k);
   }
   if (drop.length) await chrome.storage.local.remove(drop);
@@ -85,7 +85,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.type === 'rating' && typeof msg.title === 'string') {
     const kind = msg.kind === 'movie' || msg.kind === 'series' ? msg.kind : null;
-    lookup(msg.title, kind, !!msg.refresh).then(sendResponse, (e) => sendResponse({ error: String(e) }));
+    const year = /^(19|20)\d\d$/.test(String(msg.year || '')) ? String(msg.year) : null;
+    lookup(msg.title, kind, !!msg.refresh, year).then(sendResponse, (e) => sendResponse({ error: String(e) }));
     return true; // keep the channel open for the async reply
   }
   if (msg.type === 'usage') {
@@ -200,8 +201,10 @@ async function maybeRefresh() {
 
 // Entries looked up with a type hint are stored separately from untyped
 // ones, since the match can differ.
-function storeKey(title, kind) {
-  return 'r:' + (kind ? kind + ':' : '') + title.trim().toLowerCase().replace(/\s+/g, ' ');
+// 'r:<title>', 'r:series:<title>', 'r:series:2026:<title>': the more the
+// site told us, the more specific the key.
+function storeKey(title, kind, year) {
+  return 'r:' + (kind ? kind + ':' : '') + (year ? year + ':' : '') + title.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 function utcDay() {
@@ -224,9 +227,16 @@ async function usage() {
   return { day, today: usage.day === day ? usage.count : 0, limitHit: Date.now() < limitPauseUntil, stored, local, build, autoRefresh };
 }
 
-async function lookup(title, kind, refresh) {
-  const key = storeKey(title, kind);
+async function lookup(title, kind, refresh, year) {
+  const key = storeKey(title, kind, year);
   if (!title.trim()) return { rating: null };
+
+  // A hit found with a type or year hint is better than whatever the less
+  // specific lookups (which the cards use) settled on for the same title,
+  // so it replaces those entries too.
+  const broaderKeys = [];
+  if (year) broaderKeys.push(storeKey(title, kind, null));
+  if (kind) broaderKeys.push(storeKey(title, null, null));
 
   const stored = (await chrome.storage.local.get(key))[key];
   if (stored && (!refresh || !isStale(stored))) {
@@ -235,11 +245,11 @@ async function lookup(title, kind, refresh) {
 
   // Nothing stored, or a stale entry we've been asked to refresh. The local
   // database answers first; it costs no requests.
-  const local = await RatingsDB.lookup(title, kind);
+  const local = await RatingsDB.lookup(title, kind, year);
   if (local) {
     const entry = { ...local, ts: Date.now() };
     const writes = { [key]: entry };
-    if (kind) writes[storeKey(title, null)] = entry;
+    for (const k of broaderKeys) writes[k] = entry;
     await chrome.storage.local.set(writes);
     return { ...entry, stale: false };
   }
@@ -254,17 +264,14 @@ async function lookup(title, kind, refresh) {
   }
 
   if (inFlight.has(key)) return inFlight.get(key);
-  const p = schedule(() => fetchRating(title, kind))
+  const p = schedule(() => fetchRating(title, kind, year))
     .then(async (result) => {
       if (result.error) {
         return stored ? { ...stored, stale: false } : result; // keep the old answer
       }
       const entry = { ...result, ts: Date.now() };
       const writes = { [key]: entry };
-      // A typed lookup that found something is more trustworthy than the
-      // untyped one for the same title (e.g. a 2026 series vs a 2002 film),
-      // so let it replace the untyped entry that cards use.
-      if (kind && entry.rating != null) writes[storeKey(title, null)] = entry;
+      if (entry.rating != null) for (const k of broaderKeys) writes[k] = entry;
       await chrome.storage.local.set(writes);
       return { ...entry, stale: false };
     })
@@ -303,7 +310,7 @@ async function countRequest() {
   await chrome.storage.local.set({ usage: { day, count } });
 }
 
-async function fetchRating(title, kind) {
+async function fetchRating(title, kind, year) {
   const { omdbKey } = await chrome.storage.sync.get('omdbKey');
   if (!omdbKey) return { error: 'nokey' };
 
@@ -314,6 +321,7 @@ async function fetchRating(title, kind) {
   url.searchParams.set('apikey', omdbKey);
   url.searchParams.set('t', title);
   if (kind) url.searchParams.set('type', kind);
+  if (year) url.searchParams.set('y', year);
 
   await countRequest();
   let res;

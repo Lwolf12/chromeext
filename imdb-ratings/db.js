@@ -74,14 +74,20 @@ const RatingsDB = (() => {
 
   // Same result shape as the OMDb path, plus source: 'local'. Null when the
   // title is not in the database.
-  async function lookup(title, kind) {
+  // kind ('movie' | 'series' | null) filters; year (string | null) prefers
+  // the entry released that year, give or take one, among several of the
+  // same name (the 2026 series "East of Eden" over the 1955 film). Entries
+  // are most-voted first, so without a year match the popular one wins.
+  async function lookup(title, kind, year) {
     const m = await getMeta();
     if (!m) return null;
     const db = await open();
     const rec = await result(db.transaction(m.store).objectStore(m.store).get(normalise(title)));
     if (!rec || !rec.e.length) return null;
     const want = kind === 'movie' ? 'm' : kind === 'series' ? 's' : null;
-    const hit = (want && rec.e.find((e) => e[1] === want)) || (want ? null : rec.e[0]);
+    const pool = want ? rec.e.filter((e) => e[1] === want) : rec.e;
+    const y = year ? Number(year) : NaN;
+    const hit = (Number.isFinite(y) && pool.find((e) => e[2] != null && Math.abs(e[2] - y) <= 1)) || pool[0];
     if (!hit) return null;
     const [imdbID, type, year, rating, votes, primaryTitle] = hit;
     return {

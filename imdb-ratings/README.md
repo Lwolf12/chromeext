@@ -10,7 +10,7 @@ so more services can be added.
 
 | Site | Card badge | Hover details | Notes |
 | --- | --- | --- | --- |
-| Netflix | top-right of each tile | line under the preview popup's buttons; in the featured banner, a chip beside Play / More Info | no year or type on cards; the popup's episode marker gives a series hint that also corrects the card |
+| Netflix | top-right of each tile | line under the preview popup's buttons; in the featured banner, a chip beside Play / More Info | no year or type on cards; the popup's type and year lines pick the right same-named title and also correct the card |
 | Prime Video | top-right of each tile; hidden while the card is expanded | chip in the expanded card's metadata row; in the top banner, a chip beside the Watch now button | season suffixes stripped; movie/series type passed to OMDb |
 | Hulu | top-right of each tile | line under the preview panel's metadata; also in the top banner | movie/series type from the link path |
 | HBO Max | bottom-right of each poster | none (HBO Max has no hover preview); the badge tooltip works; in the top banner, a chip beside the Watch button; on a title's own page, a chip in the My List / Rate / Trailer row | title parsed from the tile's accessibility label, including episode tiles; movie/series type from the link path; episode tiles on a title's own page name no show, so they get no badge |
@@ -77,8 +77,8 @@ Create `sites/<name>.js` defining `window.IMDBEXT_SITE` in the same shape as
 the existing adapters: a `targets` list where each entry has a `kind`
 (`card` or `detail`), a `selector`, `titleOf(el)` (a title, or a list of
 candidates tried in order), `host(el)`, and
-optionally `typeOf(el)` (returns `movie` or `series`) and
-`place(host, badge)`. Add a `content_scripts` entry in the manifest matching
+optionally `typeOf(el)` (returns `movie` or `series`), `yearOf(el)` (a
+four-digit release year) and `place(host, badge)`. Add a `content_scripts` entry in the manifest matching
 that site's URLs that loads the adapter before `content.js`, and put any
 site-specific badge positioning in `badge.css`. The existing adapters'
 header comments record what each site's markup looks like.

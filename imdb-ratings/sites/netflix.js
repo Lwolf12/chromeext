@@ -70,11 +70,23 @@ window.IMDBEXT_SITE = {
         const img = el.querySelector('img.previewModal--boxart');
         return (img && img.alt.trim()) || null;
       },
-      // Cards carry no type, but the popup shows "S1:E3" for series. A series
-      // hint fixes titles that OMDb would otherwise match to a same-named
-      // film. Movies get no hint (we can't tell them from unknowns).
+      // Cards carry no type or year, but the popup does: a "Show|Drama" or
+      // "Movie|Action" line ([data-uia="makeover-content-type-genre"]) and a
+      // "2026•7 Episodes•TV-MA•HD" line ([data-uia="makeover-metadata"]).
+      // Both hints fix titles that would otherwise match a same-named older
+      // film (East of Eden, 2026 series vs 1955 film). Watched shows show
+      // "S1:E3" instead of the type line.
       typeOf(el) {
+        const line = el.querySelector('[data-uia="makeover-content-type-genre"]');
+        const first = line ? line.textContent.split('|')[0].trim() : '';
+        if (/^(show|series)$/i.test(first)) return 'series';
+        if (/^(movie|film)$/i.test(first)) return 'movie';
         return /\bS\d+:E\d+\b/.test(el.textContent) ? 'series' : null;
+      },
+      yearOf(el) {
+        const meta = el.querySelector('[data-uia="makeover-metadata"]');
+        const m = meta && meta.textContent.match(/\b(19|20)\d\d\b/);
+        return m ? m[0] : null;
       },
       host(el) {
         return (

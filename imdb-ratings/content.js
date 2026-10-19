@@ -73,8 +73,10 @@
     const candidates = titlesOf(target, el);
     if (candidates[0] !== key) return;
 
-    // Optional hint from the site: 'movie' or 'series', to sharpen the match.
+    // Optional hints from the site: 'movie' or 'series', and the release
+    // year, to pick the right one among same-named titles.
     const kind = typeof target.typeOf === 'function' ? target.typeOf(el) || null : null;
+    const year = typeof target.yearOf === 'function' ? target.yearOf(el) || null : null;
 
     // Try each candidate until one has a rating; keep the last answer otherwise.
     let title = key;
@@ -82,7 +84,7 @@
     for (const candidate of candidates) {
       title = candidate;
       try {
-        result = await chrome.runtime.sendMessage({ type: 'rating', title, kind });
+        result = await chrome.runtime.sendMessage({ type: 'rating', title, kind, year });
       } catch (e) {
         // Usually "Extension context invalidated" after a reload of the
         // extension; a page reload picks things up again.
@@ -121,7 +123,7 @@
     if (result.stale) {
       let fresh;
       try {
-        fresh = await chrome.runtime.sendMessage({ type: 'rating', title, kind, refresh: true });
+        fresh = await chrome.runtime.sendMessage({ type: 'rating', title, kind, year, refresh: true });
       } catch (e) {
         return;
       }
