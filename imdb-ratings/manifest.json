@@ -3,6 +3,12 @@
   "name": "IMDb Ratings for Streaming",
   "version": "0.7.2",
   "description": "Shows the IMDb user rating on top of each title card while you browse Netflix, Prime Video, Hulu and HBO Max.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": ["storage", "unlimitedStorage", "alarms", "offscreen"],
   "host_permissions": ["https://www.omdbapi.com/", "https://datasets.imdbws.com/"],
   "background": {
@@ -39,6 +45,10 @@
     "open_in_tab": false
   },
   "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    },
     "default_title": "IMDb Ratings: settings"
   }
 }
