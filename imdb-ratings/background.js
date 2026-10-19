@@ -126,8 +126,12 @@ async function lookup(title, kind, refresh) {
     await chrome.storage.local.set(writes);
     return { ...entry, stale: false };
   }
-  const { omdbFallback = true } = await chrome.storage.sync.get('omdbFallback');
-  if (!omdbFallback) {
+  // Without a key, or with the fallback switched off, a local miss is simply
+  // a miss. (If there is no local database either, fetchRating() reports
+  // 'nokey' so the page can warn.)
+  const { omdbFallback = true, omdbKey } = await chrome.storage.sync.get(['omdbFallback', 'omdbKey']);
+  const localPresent = (await LocalDB.status()).present;
+  if (!omdbFallback || (!omdbKey && localPresent)) {
     return stored ? { ...stored, stale: false } : { rating: null, source: 'local' };
   }
 

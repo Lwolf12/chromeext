@@ -17,23 +17,24 @@ so more services can be added.
 
 ## Setup
 
-1. Get a free OMDb API key at <https://www.omdbapi.com/apikey.aspx> (1,000
-   lookups a day) and activate it from the email they send. The key comes
-   from OMDb, not IMDb: IMDb itself doesn't issue keys, and OMDb is a
-   separate service that mirrors IMDb's ratings. Without a key the
-   extension loads but shows no badges.
-2. Download the latest `imdb-ratings` ZIP from the
+1. Download the latest `imdb-ratings` ZIP from the
    [Releases page](https://github.com/Lwolf12/chromeext/releases) and
    extract it somewhere permanent (Chrome loads the extension from that
    folder every time it starts). In Chrome open `chrome://extensions`, turn
    on **Developer mode**, click **Load unpacked** and pick the
    `imdb-ratings` folder.
-3. The settings panel opens on first install (later: click the extension's
-   toolbar icon). Paste the key, **Save**, and use **Test key** to confirm
-   OMDb accepts it.
-4. Open any of the four sites (reload if it was already open).
+2. Open any of the four sites (reload if it was already open). The ZIP
+   includes a local ratings database (next section), so badges appear
+   without any further setup.
+3. Optional: an OMDb API key fills in titles the local database lacks,
+   such as brand-new releases. Get a free one at
+   <https://www.omdbapi.com/apikey.aspx> (1,000 lookups a day), activate
+   it from the email they send, then open the settings panel (click the
+   extension's toolbar icon), paste the key, **Save**, and use **Test key**.
+   The key comes from OMDb, not IMDb: IMDb itself doesn't issue keys, and
+   OMDb is a separate service that mirrors IMDb's ratings.
 
-## Local database (optional, recommended)
+## Local database
 
 IMDb publishes its ratings as daily data dumps. The extension can answer from
 a local copy of them, which uses no OMDb requests and works without a key:
