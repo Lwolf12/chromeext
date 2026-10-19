@@ -53,9 +53,8 @@ that site's URLs that loads the adapter before `content.js`, and put any
 site-specific badge positioning in `badge.css`. The existing adapters'
 header comments record what each site's markup looks like.
 
-Or do what I did: point Claude Code at this folder, paste the streaming
-site's URL, and say "add this one." That's how all four adapters here were
-written.
+Or point Claude Code at this folder, paste the site's URL, and say "add
+this one."
 
 ## Known limits
 
