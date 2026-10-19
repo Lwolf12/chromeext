@@ -65,6 +65,15 @@ a[data-uia="progress-card"] {
   color: #999;
 }
 
+/* Netflix: the featured banner's chip sits in the Play / More Info row,
+   which is a 12px-gap flex row of 48px buttons. */
+[data-uia="billboard-actions"] > .imdbext-badge--detail {
+  margin: 0;
+  align-self: center;
+  font-size: 14px;
+  padding: 6px 10px 6px 8px;
+}
+
 /* Prime Video: the chip joins the hovered card's metadata row
    (maturity rating, stars, year), so it needs row-friendly spacing. */
 [data-testid="metadata-default"] > .imdbext-badge--detail {

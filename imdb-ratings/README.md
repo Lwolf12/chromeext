@@ -10,7 +10,7 @@ so more services can be added.
 
 | Site | Card badge | Hover details | Notes |
 | --- | --- | --- | --- |
-| Netflix | top-right of each tile | line under the preview popup's buttons | no year or type on cards; the popup's episode marker gives a series hint that also corrects the card |
+| Netflix | top-right of each tile | line under the preview popup's buttons; in the featured banner, a chip beside Play / More Info | no year or type on cards; the popup's episode marker gives a series hint that also corrects the card |
 | Prime Video | top-right of each tile; hidden while the card is expanded | chip in the expanded card's metadata row; in the top banner, a chip beside the Watch now button | season suffixes stripped; movie/series type passed to OMDb |
 | Hulu | top-right of each tile | line under the preview panel's metadata; also in the top banner | movie/series type from the link path |
 | HBO Max | bottom-right of each poster | none (HBO Max has no hover preview); the badge tooltip works | title parsed from the tile's accessibility label, including episode tiles; movie/series type from the link path |
