@@ -94,9 +94,15 @@ a[data-uia="progress-card"] {
 /* Prime's expanded card adds an overlay above the artwork; keep the
    corner badge above it. */
 article[data-testid="card"] > .imdbext-badge--card,
-[data-testid="super-carousel-card"] > .imdbext-badge--card,
-[data-testid="top-hero-card"] > .imdbext-badge--card {
+[data-testid="super-carousel-card"] > .imdbext-badge--card {
   z-index: 30;
+}
+
+/* Prime's top banner: the chip joins the button row beside "More details". */
+[data-testid="top-hero-card"] [data-testid="action-box"] > .imdbext-badge--detail {
+  margin: 0 0 0 14px;
+  align-self: center;
+  font-size: 13px;
 }
 
 /* While a Prime card is expanded (hovered) its artwork outgrows the

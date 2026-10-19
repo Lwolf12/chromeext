@@ -77,14 +77,20 @@
         },
       },
       {
-        kind: 'card',
+        // Top banner. Its top-right corner sits under Prime's sticky nav bar,
+        // which swallows clicks there, so the rating goes in the banner's
+        // button row (next to "More details") as a detail chip instead.
+        kind: 'detail',
         selector: '[data-testid="top-hero-card"]',
         titleOf(el) {
           const art = el.querySelector('[data-testid="title-art"] img[alt]');
           return cleanTitle((art && art.alt) || '') || ariaOrAltTitle(el);
         },
         host(el) {
-          return el;
+          return el.querySelector('[data-testid="action-box"]') || el;
+        },
+        place(host, badge) {
+          host.appendChild(badge);
         },
       },
       {
