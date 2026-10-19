@@ -60,6 +60,7 @@ async function refreshStats() {
     return;
   }
   const l = u.local || {};
+  builtAt = l.present ? l.builtAt || 0 : 0;
   $('localStatus').textContent = l.present
     ? l.titles.toLocaleString() + ' titles, built ' + l.built + ' (' + ago(l.builtAt) + ').'
     : 'Not built yet. Click Update now; it takes a few minutes.';
@@ -70,7 +71,28 @@ async function refreshStats() {
   $('limit').textContent = u.limitHit ? '(limit reached; paused for now)' : '';
 }
 
+// Update now rebuilds regardless of age, but a database under a day old is
+// almost certainly current, so ask for a second click before re-downloading
+// 240 MB.
+let builtAt = 0;
+let confirmUntil = 0;
+
+function sinceBuild() {
+  const mins = Math.round((Date.now() - builtAt) / 60000);
+  if (mins < 60) return mins + ' minute' + (mins === 1 ? '' : 's') + ' ago';
+  const hours = Math.round(mins / 60);
+  return hours + ' hour' + (hours === 1 ? '' : 's') + ' ago';
+}
+
 $('build').addEventListener('click', async () => {
+  const fresh = builtAt && Date.now() - builtAt < 24 * 60 * 60 * 1000;
+  if (fresh && Date.now() > confirmUntil) {
+    confirmUntil = Date.now() + 8000;
+    say('Built ' + sinceBuild() + ', so it is current. Click again to rebuild anyway.', 'muted');
+    return;
+  }
+  confirmUntil = 0;
+  say('');
   $('build').disabled = true;
   showBuild(await chrome.runtime.sendMessage({ type: 'build' }));
 });
