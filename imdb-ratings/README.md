@@ -23,9 +23,10 @@ so more services can be added.
    folder every time it starts). In Chrome open `chrome://extensions`, turn
    on **Developer mode**, click **Load unpacked** and pick the
    `imdb-ratings` folder.
-2. The settings panel opens and the extension starts building its ratings
-   database (next section): a few minutes, with a progress bar. When it
-   says done, open any of the four sites. That's it.
+2. The settings panel opens. Click **Update now** to build the ratings
+   database (next section): about 240 MB downloaded from IMDb, a few
+   minutes, with a progress bar. When it says done, open any of the four
+   sites. That's it.
 3. Optional: a free OMDb API key fills in titles the database doesn't
    have, such as brand-new releases. Get one at
    <https://www.omdbapi.com/apikey.aspx> (1,000 lookups a day), activate it
@@ -42,10 +43,12 @@ browser: it downloads about 240 MB from IMDb, keeps movies and series with
 at least 25 votes (about 365,000 titles), and stores the result in the
 browser's IndexedDB. Lookups then happen locally, with no requests to anyone.
 
-The build runs on first install, again automatically once the database is a
-week old, and whenever you click **Update now** on the settings panel, which
-also shows the title count, build date and progress. The weekly refresh can
-be switched off there. A failed build (offline, say) is retried a day later.
+Nothing downloads until you click **Update now** on the settings panel the
+first time. After that the database is rebuilt automatically once it is a
+week old (another 240 MB each time); the panel shows the title count, build
+date and progress, and the weekly refresh can be switched off there, which
+is the thing to do on a metered connection. A failed build (offline, say) is
+retried a day later.
 
 No ratings data ships with the extension and none is in this repository: the
 data is IMDb's, and their licence covers your own copy, not redistribution.

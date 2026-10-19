@@ -34,9 +34,9 @@ chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 chrome.runtime.onInstalled.addListener((details) => {
   chrome.alarms.create('db-refresh', { periodInMinutes: DB_CHECK_MINUTES });
   if (details.reason === 'install') {
-    // Show the panel so the first build's progress is visible, then build.
+    // Open the panel and let the user start the first (240 MB) build
+    // themselves. Nothing downloads until they click Update now.
     chrome.runtime.openOptionsPage();
-    startBuild('install');
   } else {
     maybeRefresh();
   }
@@ -148,8 +148,16 @@ async function onBuildMessage(msg) {
   }
 }
 
-// Rebuild when there is no database, or it is older than a week, and the
-// automatic refresh hasn't been switched off.
+// Best effort: Chrome only reports this on Android and ChromeOS. On desktop
+// it is always "unknown", so this never blocks there.
+function looksMetered() {
+  const c = typeof navigator !== 'undefined' && navigator.connection;
+  return !!c && (c.saveData === true || c.type === 'cellular');
+}
+
+// Rebuild once the database is older than a week, if the user built one in
+// the first place and hasn't switched the automatic refresh off. The first
+// build is always the user's own click, so nothing downloads unasked.
 async function maybeRefresh() {
   const { autoRefresh = true } = await chrome.storage.sync.get('autoRefresh');
   if (!autoRefresh) return;
@@ -158,7 +166,10 @@ async function maybeRefresh() {
   // Don't hammer IMDb if builds keep failing: wait a day after an error.
   if (state.status === 'error' && Date.now() - (state.at || 0) < 24 * 60 * 60 * 1000) return;
   const meta = await RatingsDB.getMeta();
-  if (!meta || Date.now() - (meta.builtAt || 0) > DB_MAX_AGE_MS) await startBuild('auto');
+  if (!meta) return;
+  if (Date.now() - (meta.builtAt || 0) < DB_MAX_AGE_MS) return;
+  if (looksMetered()) return; // try again at the next check
+  await startBuild('auto');
 }
 
 // ----------------------------------------------------------------- lookups
