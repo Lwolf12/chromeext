@@ -158,7 +158,8 @@
     if (result.rating == null) {
       badge.classList.add('imdbext-badge--none');
       score.textContent = 'n/a';
-      badge.title = 'No IMDb match for "' + title + '"';
+      badge.title =
+        'No IMDb match for "' + title + '"' + (result.offered ? ' (OMDb offered "' + result.offered + '", not the same title)' : '');
       delete badge.dataset.imdbId;
       if (kind === 'detail') {
         const info = document.createElement('span');

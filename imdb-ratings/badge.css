@@ -92,6 +92,17 @@ section[data-testid$="_immersiveHero"] .imdbext-badge--detail {
   align-self: center;
   font-size: 14px;
   padding: 6px 10px 6px 8px;
+  max-width: 280px;
+}
+
+/* Banner chips sit in narrow button rows; a long "matched ..." note would
+   wrap the row, so trim it (the tooltip still has the full text). */
+section[data-testid$="_immersiveHero"] .imdbext-info,
+[data-uia="billboard-actions"] .imdbext-info,
+[data-testid="top-hero-card"] [data-testid="action-box"] .imdbext-info {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* HBO Max: hovering a tile reveals a "..." menu button top-right and HBO's

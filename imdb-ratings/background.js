@@ -319,6 +319,14 @@ async function fetchRating(title, kind) {
   if (!res.ok || !data) return { error: 'http' };
   if (data.Response !== 'True') return { rating: null };
 
+  // OMDb's title search is fuzzy: asked for "Youth" it can answer with
+  // "Hwarang: The Poet Warrior Youth". The local database only matches whole
+  // titles, so hold OMDb to the same standard and treat anything else as a
+  // miss (recorded, so the badge tooltip can say what was offered).
+  if (!sameTitle(title, data.Title)) {
+    return { rating: null, source: 'omdb', offered: data.Title || null };
+  }
+
   const rating = parseFloat(data.imdbRating);
   return {
     rating: Number.isFinite(rating) ? rating : null,
@@ -329,6 +337,16 @@ async function fetchRating(title, kind) {
     matchedTitle: data.Title || null,
     source: 'omdb',
   };
+}
+
+// Same title once accents, case, punctuation and a leading article are
+// ignored, so "The Pitt" and "Pitt" agree but "Youth" and "Hwarang: The Poet
+// Warrior Youth" do not.
+function sameTitle(a, b) {
+  const clean = (t) => RatingsDB.normalise(t).replace(/^(the|a|an) /, '');
+  const x = clean(a);
+  const y = clean(b);
+  return !!x && x === y;
 }
 
 // One request, bypassing the pause, so the options page can show exactly what

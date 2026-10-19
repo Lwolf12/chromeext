@@ -93,7 +93,11 @@ this one."
   can match the wrong entry; the badge tooltip shows what was matched. The
   other three sites supply a movie/series hint, which helps.
 - **OMDb coverage.** Brand-new or obscure titles sometimes have no OMDb
-  entry yet and show `n/a`. Misses are re-checked after three days.
+  entry yet and show `n/a`. OMDb's title search is loose, so an answer
+  whose title isn't the one asked for (ignoring case, punctuation and a
+  leading "The") is treated as a miss rather than shown; the badge tooltip
+  says what OMDb offered. Misses are re-checked after three days, and the
+  weekly database rebuild picks new titles up once they have 25 votes.
 - **OMDb quota.** Only cards within about one screen of the viewport are
   looked up. Every answer is stored permanently and shown immediately; hits
   are re-checked after 30 days and misses after 3, in the background. If
