@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "IMDb Ratings for Streaming",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Shows the IMDb user rating on top of each title card while you browse Netflix, Prime Video, Hulu and HBO Max.",
   "permissions": ["storage", "unlimitedStorage"],
   "host_permissions": ["https://www.omdbapi.com/"],

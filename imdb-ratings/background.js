@@ -119,7 +119,12 @@ async function lookup(title, kind, refresh) {
         return stored ? { ...stored, stale: false } : result; // keep the old answer
       }
       const entry = { ...result, ts: Date.now() };
-      await chrome.storage.local.set({ [key]: entry });
+      const writes = { [key]: entry };
+      // A typed lookup that found something is more trustworthy than the
+      // untyped one for the same title (e.g. a 2026 series vs a 2002 film),
+      // so let it replace the untyped entry that cards use.
+      if (kind && entry.rating != null) writes[storeKey(title, null)] = entry;
+      await chrome.storage.local.set(writes);
       return { ...entry, stale: false };
     })
     .finally(() => inFlight.delete(key));

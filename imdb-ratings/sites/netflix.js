@@ -37,6 +37,12 @@ window.IMDBEXT_SITE = {
         const img = el.querySelector('img.previewModal--boxart');
         return (img && img.alt.trim()) || null;
       },
+      // Cards carry no type, but the popup shows "S1:E3" for series. A series
+      // hint fixes titles that OMDb would otherwise match to a same-named
+      // film. Movies get no hint (we can't tell them from unknowns).
+      typeOf(el) {
+        return /\bS\d+:E\d+\b/.test(el.textContent) ? 'series' : null;
+      },
       host(el) {
         return (
           el.querySelector('.previewModal--metadatAndControls-container') ||

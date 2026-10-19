@@ -100,6 +100,7 @@
     render(badge, title, result, target.kind);
     if (typeof target.place === 'function') target.place(host, badge);
     else host.appendChild(badge);
+    if (target.kind === 'detail' && kind) syncCards(title, result);
 
     // Stored answer was old: show it now, refresh quietly, update if changed.
     if (result.stale) {
@@ -111,6 +112,24 @@
       }
       if (fresh && !fresh.error && badge.isConnected && el.getAttribute(PROCESSED) === title) {
         render(badge, title, fresh, target.kind);
+        if (target.kind === 'detail' && kind) syncCards(title, fresh);
+      }
+    }
+  }
+
+  // A detail popup may know the title's type when the cards didn't (Netflix
+  // shows "S1:E3" only for series), so its typed match can be better than
+  // what the cards got. Redraw any card badges for the same title with it.
+  function syncCards(title, result) {
+    if (result.rating == null) return;
+    const attr = '[' + PROCESSED + '="' + title.replace(/["\\]/g, '\\$&') + '"]';
+    for (const target of site.targets) {
+      if (target.kind !== 'card') continue;
+      // The selector may be a comma list; the attribute filter goes on each part.
+      const sel = target.selector.split(',').map((s) => s.trim() + attr).join(', ');
+      for (const el of document.querySelectorAll(sel)) {
+        const badge = (target.host(el) || el).querySelector('.imdbext-badge--card');
+        if (badge) render(badge, title, result, 'card');
       }
     }
   }
