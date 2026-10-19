@@ -42,6 +42,25 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+// Stored answers from before OMDb's fuzzy matches were rejected may carry
+// some other title's rating for up to 30 days. Drop those once, on the first
+// run of this worker version; they get looked up again on demand.
+purgeMismatchedAnswers();
+
+async function purgeMismatchedAnswers() {
+  const { purgedFuzzy } = await chrome.storage.local.get('purgedFuzzy');
+  if (purgedFuzzy) return;
+  const all = await chrome.storage.local.get(null);
+  const drop = [];
+  for (const [k, v] of Object.entries(all)) {
+    if (!k.startsWith('r:') || !v || v.source !== 'omdb' || !v.matchedTitle) continue;
+    const asked = k.slice(2).replace(/^(movie|series):/, '');
+    if (!sameTitle(asked, v.matchedTitle)) drop.push(k);
+  }
+  if (drop.length) await chrome.storage.local.remove(drop);
+  await chrome.storage.local.set({ purgedFuzzy: 1 });
+}
+
 chrome.runtime.onStartup.addListener(() => {
   chrome.alarms.create('db-refresh', { periodInMinutes: DB_CHECK_MINUTES });
   maybeRefresh();
