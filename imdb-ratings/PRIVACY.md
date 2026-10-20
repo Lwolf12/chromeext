@@ -1,4 +1,4 @@
-# Privacy policy: IMDb Ratings for Streaming
+# Privacy policy: Show IMDb Ratings on Streaming Services
 
 Last updated: 2026-10-19
 

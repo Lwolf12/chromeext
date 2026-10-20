@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "IMDb Ratings for Streaming",
-  "version": "0.8.0",
+  "name": "Show IMDb Ratings on Streaming Services",
+  "version": "0.8.1",
   "description": "Shows the IMDb user rating on top of each title card while you browse Netflix, Prime Video, Hulu and HBO Max.",
   "icons": {
     "16": "icons/icon16.png",
@@ -22,7 +22,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.amazon.com/*", "https://www.primevideo.com/*"],
+      "matches": ["https://www.amazon.com/gp/video/*", "https://www.primevideo.com/*"],
       "js": ["sites/primevideo.js", "content.js"],
       "css": ["badge.css"],
       "run_at": "document_idle"

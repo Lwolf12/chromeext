@@ -1,4 +1,4 @@
-# Chrome Web Store listing: IMDb Ratings for Streaming
+# Chrome Web Store listing: Show IMDb Ratings on Streaming Services
 
 Everything to paste into the developer dashboard
 (<https://chrome.google.com/webstore/devconsole>). The upload ZIP is built
@@ -6,7 +6,7 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 
 ## Store listing tab
 
-**Name** (from the manifest): IMDb Ratings for Streaming
+**Name** (from the manifest): Show IMDb Ratings on Streaming Services
 
 **Summary** (132 characters max):
 
@@ -87,7 +87,7 @@ featuring): skip for the first submission.
 | `offscreen` | Building the database (downloading and parsing IMDb's dumps) takes minutes and runs in a Web Worker, which the service worker cannot host; an offscreen document hosts the worker. |
 | Host permission `https://datasets.imdbws.com/` | Downloads IMDb's public ratings data dumps to build the local database. |
 | Host permission `https://www.omdbapi.com/` | Optional fallback lookups for titles not in the local database, only when the user has entered an OMDb API key. |
-| Content scripts on `www.netflix.com`, `www.primevideo.com`, `www.amazon.com`, `www.hulu.com`, `play.hbomax.com` | Reads the title names shown on each site's title cards, banners and previews and draws the rating badge next to them. amazon.com is matched because Prime Video is served from amazon.com in the US. Each service can be switched off on the settings panel, after which the script does nothing on that site beyond one settings read. |
+| Content scripts on `www.netflix.com`, `www.primevideo.com`, `www.amazon.com/gp/video/`, `www.hulu.com`, `play.hbomax.com` | Reads the title names shown on each site's title cards, banners and previews and draws the rating badge next to them. In the US Prime Video is served from amazon.com under /gp/video/, so only that path is matched; the rest of amazon.com is never touched. Each service can be switched off on the settings panel, after which the script does nothing on that site beyond one settings read. |
 
 **Are you using remote code?** No. All code is in the package; `importScripts` loads only packaged files.
 
@@ -115,16 +115,16 @@ Visibility **Public**, all regions, free.
 
 ## Things the reviewer may raise
 
-- **Trademark in the name.** "IMDb" is a registered trademark; the store's
-  impersonation policy is enforced unevenly, and many "IMDb …" extensions
-  are listed, but a rejection is possible. If it is rejected on those
-  grounds, rename to something like "Ratings for Streaming" and keep "shows
-  IMDb user ratings" in the summary, which is a descriptive use.
-- **Broad host match on amazon.com.** Content scripts on `www.amazon.com/*`
-  count as a broad host permission, which slows review (days rather than
-  hours). The justification above explains it; narrowing to
-  `https://www.amazon.com/gp/video/*` and the Prime Video paths would speed
-  it up, if the adapter still works there.
+- **Trademark in the name.** "IMDb" is a registered trademark. The name
+  uses it descriptively ("Show IMDb Ratings on …") rather than as a brand,
+  many "IMDb Ratings for Netflix"-style extensions are listed, and the
+  description ends with a non-affiliation notice.
+- **amazon.com match.** Content scripts run only on
+  `www.amazon.com/gp/video/*`, where Prime Video's storefront and title
+  pages live. Prime title pages reached through `/dp/<ASIN>` links (from
+  Google or Amazon search) render the same page but get no chip; matching
+  `/dp/*` would mean every Amazon product page, which is not worth the
+  broader permission.
 - **Large download.** Reviewers sometimes ask why an extension pulls 240 MB.
   The description and the settings panel already explain it and nothing
   downloads without a click.

@@ -1,4 +1,4 @@
-# IMDb Ratings for Streaming
+# Show IMDb Ratings on Streaming Services
 
 Chrome extension that overlays the IMDb user rating on every title card
 while browsing Netflix, Prime Video, Hulu and HBO Max. Each card gets a small
@@ -35,8 +35,8 @@ so more services can be added.
    from OMDb, not IMDb: IMDb itself doesn't issue keys, and OMDb is a
    separate service that mirrors IMDb's ratings.
 4. Optional: under **Sites** on the same panel, untick any service you
-   don't use. The extension then stays idle on that site (on Prime Video
-   that includes all of amazon.com). Changes apply to open tabs at once.
+   don't use. The extension then stays idle on that site. Changes apply
+   to open tabs at once.
 
 ## Local database
 
