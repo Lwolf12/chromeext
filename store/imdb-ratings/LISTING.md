@@ -17,25 +17,24 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 **Description:**
 
 > See IMDb ratings without leaving the streaming site. While you browse
-> Netflix, Prime Video, Hulu or HBO Max, every title card gets a small badge
-> with the IMDb user rating. Hover a title and the site's own preview gets
-> an IMDb line with the year and vote count; click it to open the IMDb page.
-> Banners and title pages get a rating chip too.
+> Netflix, Prime Video, Hulu or HBO Max, every title card gets a small
+> rating badge. Hovering a title adds the year and vote count to the site's
+> own preview, with a link to the title's page. Banners and title pages get
+> a rating chip too.
 >
 > HOW IT WORKS
 > The extension builds its own ratings database in your browser from IMDb's
-> public data (about 240 MB downloaded from IMDb, a few minutes, once a
-> week; the weekly refresh can be switched off for metered connections).
-> Lookups then happen locally, on your device, with no requests to anyone.
-> Nothing downloads until you click Update now on the settings panel.
-> Only use some of the four services? Untick the others in the settings
-> panel and the extension stays idle there.
+> public data (about 240 MB, a few minutes, refreshed weekly; the refresh
+> can be switched off for metered connections). Lookups then happen on your
+> device, with no requests to anyone. Nothing downloads until you click
+> Update now in the settings. Only use some of the services? Untick the
+> others in the settings and the extension stays idle there.
 >
 > OPTIONAL: NEW RELEASES
-> Brand-new titles are not in IMDb's data yet. If you want those too, get a
-> free OMDb API key (1,000 lookups a day) and paste it into the settings
-> panel. Only then are title names sent to OMDb, and only for titles the
-> local database does not have.
+> Brand-new titles are not in the public data yet. To cover those, get a
+> free API key from omdbapi.com (1,000 lookups a day) and paste it into the
+> settings. Only then are title names sent to that service, and only for
+> titles the local database does not have.
 >
 > PRIVACY
 > No accounts, no analytics, no server. The extension reads only the title
@@ -45,9 +44,14 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 > OPEN SOURCE
 > https://github.com/Lwolf12/chromeext
 >
-> IMDb is a trademark of IMDb.com, Inc. This extension is an independent
-> project, not affiliated with or endorsed by IMDb, OMDb, Netflix, Amazon,
-> Hulu or HBO Max.
+> Independent project, not affiliated with or endorsed by IMDb or any
+> streaming service.
+
+0.8.1 was rejected as "Keyword Spam" (Yellow Argon) for the earlier closing
+line, which listed IMDb, OMDb, Netflix, Amazon, Hulu and HBO Max in a row.
+The description was then trimmed to name each streaming service once and
+IMDb three times plus the notice. Keep brand names out of lists and
+repetition.
 
 **Icon:** `imdb-ratings/icons/icon128.png` (taken from the ZIP automatically).
 
