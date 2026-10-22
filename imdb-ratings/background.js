@@ -5,8 +5,9 @@
 //
 // Also owns the database build: it runs in a hidden offscreen page
 // (offscreen.html -> build-worker.js), started by the Update button on the
-// settings panel, on first install, and automatically once the database is
-// over a week old (checked a few times a day by an alarm).
+// settings panel and automatically once the database is over a week old
+// (checked a few times a day by an alarm). Until the first build, the
+// toolbar icon carries a "!" badge.
 //
 // Content scripts send {type: 'rating', title, kind?, refresh?} and get back
 //   {rating, votes, year, imdbID, kind, matchedTitle, ts, stale, source}
@@ -35,12 +36,29 @@ chrome.runtime.onInstalled.addListener((details) => {
   chrome.alarms.create('db-refresh', { periodInMinutes: DB_CHECK_MINUTES });
   if (details.reason === 'install') {
     // Open the panel and let the user start the first (240 MB) build
-    // themselves. Nothing downloads until they click Update now.
-    chrome.runtime.openOptionsPage();
+    // themselves. Nothing downloads until they click Update now. A plain tab
+    // rather than openOptionsPage(): after a Web Store install the embedded
+    // options dialog never showed up.
+    chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
+      .catch(() => chrome.runtime.openOptionsPage());
   } else {
     maybeRefresh();
   }
 });
+
+// A "!" on the toolbar icon until the first database build, so a user who
+// closed the panel still sees that setup isn't finished.
+updateBadge();
+
+async function updateBadge() {
+  const built = !!(await RatingsDB.getMeta().catch(() => null));
+  await chrome.action.setBadgeText({ text: built ? '' : '!' });
+  await chrome.action.setBadgeBackgroundColor({ color: '#f5c518' });
+  await chrome.action.setBadgeTextColor({ color: '#000' });
+  await chrome.action.setTitle({
+    title: built ? 'IMDb Ratings: settings' : 'IMDb Ratings: click to build the ratings database',
+  });
+}
 
 // Stored answers from before OMDb's fuzzy matches were rejected may carry
 // some other title's rating for up to 30 days. Drop those once, on the first
@@ -167,6 +185,7 @@ async function onBuildMessage(msg) {
   } else if (msg.type === 'done') {
     await setBuildState({ status: 'done', at: Date.now(), info: msg.info });
     await closeOffscreen();
+    updateBadge();
   } else if (msg.type === 'error') {
     await setBuildState({ status: 'error', message: msg.message, at: Date.now() });
     await closeOffscreen();
