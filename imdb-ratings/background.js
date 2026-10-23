@@ -27,20 +27,26 @@ const MIN_VOTES = 25;
 const inFlight = new Map(); // storeKey -> Promise
 let active = 0;
 const queue = [];
+let omdbKeyRejected = false; // OMDb called the saved key invalid
 
 // ---------------------------------------------------------------- events
 
 chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 
+// The settings panel in a plain tab. The embedded options dialog that
+// openOptionsPage() shows is easy to miss, and users who skip it don't know
+// the toolbar icon (hidden in the puzzle-piece menu until pinned) opens it.
+function openSettings() {
+  return chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
+    .catch(() => chrome.runtime.openOptionsPage());
+}
+
 chrome.runtime.onInstalled.addListener((details) => {
   chrome.alarms.create('db-refresh', { periodInMinutes: DB_CHECK_MINUTES });
   if (details.reason === 'install') {
     // Open the panel and let the user start the first (240 MB) build
-    // themselves. Nothing downloads until they click Update now. A plain tab
-    // rather than openOptionsPage(): after a Web Store install the embedded
-    // options dialog never showed up.
-    chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
-      .catch(() => chrome.runtime.openOptionsPage());
+    // themselves. Nothing downloads until they click Update now.
+    openSettings();
   } else {
     maybeRefresh();
   }
@@ -59,6 +65,21 @@ async function updateBadge() {
     title: built ? 'IMDb Ratings: settings' : 'IMDb Ratings: click to build the ratings database',
   });
 }
+
+// Whether pages should show the "set up" notice: no local database and no
+// way to reach OMDb either (no key, a rejected key, or the fallback off), so
+// every lookup comes back empty. building: a build is running right now.
+async function setupStatus() {
+  const { omdbFallback = true, omdbKey } = await chrome.storage.sync.get(['omdbFallback', 'omdbKey']);
+  const present = (await RatingsDB.status().catch(() => ({ present: false }))).present;
+  const needed = !present && (!omdbFallback || !omdbKey || omdbKeyRejected);
+  const state = await getBuildState();
+  return { needed, building: state.status === 'running' };
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.omdbKey) omdbKeyRejected = false;
+});
 
 // Stored answers from before OMDb's fuzzy matches were rejected may carry
 // some other title's rating for up to 30 days. Drop those once, on the first
@@ -118,6 +139,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'build') {
     startBuild('manual').then(sendResponse);
     return true;
+  }
+  if (msg.type === 'setup') {
+    setupStatus().then(sendResponse);
+    return true;
+  }
+  if (msg.type === 'open-settings') {
+    openSettings();
+    return false;
   }
   return false;
 });
@@ -360,7 +389,10 @@ async function fetchRating(title, kind, year) {
 
   // OMDb uses 401 for both a bad/unactivated key and the daily limit, so
   // read the message before deciding.
-  if (/invalid api key/i.test(errText)) return { error: 'nokey' };
+  if (/invalid api key/i.test(errText)) {
+    omdbKeyRejected = true;
+    return { error: 'nokey' };
+  }
   if (res.status === 401 || /limit/i.test(errText)) {
     // Pause for an hour, then try again: cheap, and self-healing if the
     // 401 was really something else.

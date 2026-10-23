@@ -91,6 +91,10 @@
         warnOnce('context', String(e));
         return;
       }
+      if (!setupChecked) {
+        setupChecked = true;
+        checkSetup();
+      }
       if (el.getAttribute(PROCESSED) !== key) return;
       if (!result) {
         warnOnce('empty', 'background worker sent no reply for "' + title + '"');
@@ -193,6 +197,80 @@
     }
   }
 
+  // With no local database and no usable OMDb key every lookup comes back
+  // empty, and the page looks as if the extension did nothing. After the
+  // first lookup on a page, ask the worker; if setup is needed, show one
+  // small notice that opens the settings. It polls while visible and goes
+  // away by itself once the database is built (or a key works), then the
+  // page is rescanned so the cards get their badges.
+  const HIDE_KEY = 'setupNoticeHiddenUntil';
+  const HIDE_MS = 24 * 60 * 60 * 1000;
+  const POLL_MS = 4000;
+  let setupChecked = false;
+  let notice = null;
+  let pollTimer = null;
+
+  async function checkSetup() {
+    let s;
+    try {
+      s = await chrome.runtime.sendMessage({ type: 'setup' });
+    } catch (e) {
+      return;
+    }
+    if (!mo) return; // the site was switched off meanwhile
+    if (!s || !s.needed) {
+      if (notice) {
+        removeNotice();
+        stop();
+        start();
+      }
+      return;
+    }
+    if (!notice) {
+      const { [HIDE_KEY]: until = 0 } = await chrome.storage.local.get(HIDE_KEY);
+      if (Date.now() < until || !mo || notice) return;
+      showNotice();
+    }
+    // Only touch the DOM on a real change: every mutation makes scan() look
+    // up the badge-less cards again.
+    const text = s.building ? 'Building the ratings database…' : 'Click to set up ratings';
+    const span = notice.querySelector('.imdbext-setup-text');
+    if (span.textContent !== text) span.textContent = text;
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(checkSetup, POLL_MS);
+  }
+
+  function showNotice() {
+    notice = document.createElement('div');
+    notice.className = 'imdbext-setup';
+    notice.title = 'Opens the settings, where Update now builds the ratings database (a few minutes, once)';
+    const text = document.createElement('span');
+    text.className = 'imdbext-setup-text';
+    const close = document.createElement('span');
+    close.className = 'imdbext-setup-close';
+    close.textContent = '×';
+    close.title = 'Hide for a day';
+    notice.append(text, close);
+    notice.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.target === close) {
+        chrome.storage.local.set({ [HIDE_KEY]: Date.now() + HIDE_MS });
+        removeNotice();
+        return;
+      }
+      chrome.runtime.sendMessage({ type: 'open-settings' }).catch(() => {});
+    });
+    document.body.appendChild(notice);
+  }
+
+  function removeNotice() {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+    notice?.remove();
+    notice = null;
+  }
+
   // Initial pass, then follow the single-page app as it adds rows and popups.
   let mo = null;
   let pending = null;
@@ -228,6 +306,8 @@
       pending = null;
     }
     io.disconnect();
+    removeNotice();
+    setupChecked = false;
     for (const b of document.querySelectorAll('.imdbext-badge')) b.remove();
     for (const el of document.querySelectorAll('[' + PROCESSED + ']')) el.removeAttribute(PROCESSED);
   }

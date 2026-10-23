@@ -1,14 +1,14 @@
 # chromeext
 
-Small Chrome extensions, one per folder. None of them are on the Chrome Web
-Store; you load them straight from this repository.
+Small Chrome extensions, one per folder. imdb-ratings is also on the Chrome
+Web Store; the others you load straight from this repository.
 
 | Extension | What it does |
 | --- | --- |
 | [youtube-old-layout](youtube-old-layout/) | Brings back the classic YouTube watch page: recommended videos on the right, comments under the video. |
-| [imdb-ratings](imdb-ratings/) | Overlays the IMDb user rating on title cards while browsing Netflix, Prime Video, Hulu and HBO Max. Needs a free OMDb API key. |
+| [imdb-ratings](imdb-ratings/) | Overlays the IMDb user rating on title cards while browsing Netflix, Prime Video, Hulu and HBO Max. [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/biopmnlghmgjoloionocinndfopncelh). |
 
-## Installing any of them
+## Installing from this repository
 
 1. Open the [Releases page](https://github.com/Lwolf12/chromeext/releases)
    and download the ZIP for the extension you want (each release is named

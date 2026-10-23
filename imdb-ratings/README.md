@@ -17,16 +17,20 @@ so more services can be added.
 
 ## Setup
 
-1. Download the latest `imdb-ratings` ZIP from the
-   [Releases page](https://github.com/Lwolf12/chromeext/releases) and
-   extract it somewhere permanent (Chrome loads the extension from that
-   folder every time it starts). In Chrome open `chrome://extensions`, turn
-   on **Developer mode**, click **Load unpacked** and pick the
-   `imdb-ratings` folder.
-2. The settings panel opens. Click **Update now** to build the ratings
-   database (next section): about 240 MB downloaded from IMDb, a few
-   minutes, with a progress bar. When it says done, open any of the four
-   sites. That's it.
+1. Install it from the
+   [Chrome Web Store](https://chromewebstore.google.com/detail/biopmnlghmgjoloionocinndfopncelh).
+   (Or, without the store: download the latest `imdb-ratings` ZIP from the
+   [Releases page](https://github.com/Lwolf12/chromeext/releases), extract
+   it somewhere permanent, open `chrome://extensions`, turn on **Developer
+   mode**, click **Load unpacked** and pick the `imdb-ratings` folder.)
+2. The settings panel opens in a new tab. Click **Update now** to build the
+   ratings database (next section): about 240 MB downloaded from IMDb, a
+   few minutes, with a progress bar. When it says done, open any of the
+   four sites. That's it. If you closed the tab first: the extension's star
+   icon sits in Chrome's puzzle-piece menu (pin it to keep it in the
+   toolbar, where it shows a yellow **!** until the database is built), and
+   the sites themselves show a small "Click to set up ratings" notice in
+   the bottom-right corner. Either one opens the settings.
 3. Optional: a free OMDb API key fills in titles the database doesn't
    have, such as brand-new releases. Get one at
    <https://www.omdbapi.com/apikey.aspx> (1,000 lookups a day), activate it
