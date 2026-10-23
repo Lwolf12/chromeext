@@ -7,6 +7,9 @@
 //   titles_a  keyPath 'k' -> { k: normalised title, e: [entry, ...] }
 //   titles_b  same; a build writes into whichever store is NOT live, then
 //             flips meta.store, so lookups never see a half-written database.
+//   episodes_a, episodes_b  keyPath 'k' -> { k: series imdbID,
+//             s: { "<season>": [[episode, rating, votes], ...] } }; paired
+//             with titles_a/_b and flipped with them.
 //
 // entry = [imdbID, type ('m' movie | 's' series), startYear|null, rating,
 //          votes, primaryTitle], sorted most-voted first.
@@ -15,7 +18,7 @@ const RatingsDB = (() => {
   'use strict';
 
   const NAME = 'imdbext-ratings';
-  const VERSION = 1;
+  const VERSION = 2; // 2 added the episode stores
   let conn = null;
 
   // Used for both building and lookup. Keep in one place.
@@ -35,7 +38,7 @@ const RatingsDB = (() => {
       const req = indexedDB.open(NAME, VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
-        for (const s of ['titles_a', 'titles_b']) {
+        for (const s of ['titles_a', 'titles_b', 'episodes_a', 'episodes_b']) {
           if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: 'k' });
         }
         if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
@@ -68,7 +71,7 @@ const RatingsDB = (() => {
   async function status() {
     const m = await getMeta();
     return m
-      ? { present: true, built: m.built, builtAt: m.builtAt, minVotes: m.minVotes, titles: m.titles }
+      ? { present: true, built: m.built, builtAt: m.builtAt, minVotes: m.minVotes, titles: m.titles, episodes: m.episodes }
       : { present: false };
   }
 
@@ -102,25 +105,55 @@ const RatingsDB = (() => {
     };
   }
 
-  // Writes a freshly built index (Map of normalised title -> entries) into
-  // the store that is not live, then makes it live. onProgress(done, total).
-  async function writeIndex(index, info, onProgress) {
+  const episodeStore = (titleStore) => titleStore.replace('titles', 'episodes');
+
+  // Ratings of one season of a series: { episode number: [rating, votes] },
+  // or null when the database has none (no database, a database built before
+  // episodes were added, or a season too new or too little voted on).
+  async function lookupEpisodes(imdbID, season) {
+    const m = await getMeta();
+    if (!m || !m.episodes) return null;
+    const db = await open();
+    const store = episodeStore(m.store);
+    const rec = await result(db.transaction(store).objectStore(store).get(imdbID));
+    const list = rec && rec.s[String(season)];
+    if (!list || !list.length) return null;
+    const out = {};
+    for (const [ep, rating, votes] of list) out[ep] = [rating, votes];
+    return out;
+  }
+
+  // Writes a freshly built index (Map of normalised title -> entries) and the
+  // episodes (Map of series imdbID -> { season: [[ep, rating, votes]] }) into
+  // the stores that are not live, then makes them live. onProgress(done, total).
+  async function writeIndex(index, episodes, info, onProgress) {
     const db = await open();
     const old = await getMeta();
     const target = old && old.store === 'titles_a' ? 'titles_b' : 'titles_a';
+    const epTarget = episodeStore(target);
 
-    let tx = db.transaction(target, 'readwrite');
+    let tx = db.transaction([target, epTarget], 'readwrite');
     tx.objectStore(target).clear();
+    tx.objectStore(epTarget).clear();
     await complete(tx);
 
     const keys = [...index.keys()];
+    const series = [...episodes.keys()];
+    const total = keys.length + series.length;
     const BATCH = 2000;
     for (let i = 0; i < keys.length; i += BATCH) {
       tx = db.transaction(target, 'readwrite');
       const store = tx.objectStore(target);
       for (const k of keys.slice(i, i + BATCH)) store.put({ k, e: index.get(k) });
       await complete(tx);
-      if (onProgress) onProgress(Math.min(i + BATCH, keys.length), keys.length);
+      if (onProgress) onProgress(Math.min(i + BATCH, keys.length), total);
+    }
+    for (let i = 0; i < series.length; i += BATCH) {
+      tx = db.transaction(epTarget, 'readwrite');
+      const store = tx.objectStore(epTarget);
+      for (const k of series.slice(i, i + BATCH)) store.put({ k, s: episodes.get(k) });
+      await complete(tx);
+      if (onProgress) onProgress(keys.length + Math.min(i + BATCH, series.length), total);
     }
 
     tx = db.transaction('meta', 'readwrite');
@@ -128,20 +161,22 @@ const RatingsDB = (() => {
     await complete(tx);
 
     if (old && old.store !== target) {
-      tx = db.transaction(old.store, 'readwrite');
+      tx = db.transaction([old.store, episodeStore(old.store)], 'readwrite');
       tx.objectStore(old.store).clear();
+      tx.objectStore(episodeStore(old.store)).clear();
       await complete(tx);
     }
   }
 
-  // Empties both title stores and the meta record: the state of a fresh
-  // install. The next Update now builds from scratch.
+  // Empties every store and the meta record: the state of a fresh install.
+  // The next Update now builds from scratch.
   async function clear() {
     const db = await open();
-    const tx = db.transaction(['meta', 'titles_a', 'titles_b'], 'readwrite');
-    for (const s of ['meta', 'titles_a', 'titles_b']) tx.objectStore(s).clear();
+    const stores = ['meta', 'titles_a', 'titles_b', 'episodes_a', 'episodes_b'];
+    const tx = db.transaction(stores, 'readwrite');
+    for (const s of stores) tx.objectStore(s).clear();
     await complete(tx);
   }
 
-  return { normalise, open, getMeta, status, lookup, writeIndex, clear };
+  return { normalise, open, getMeta, status, lookup, lookupEpisodes, writeIndex, clear };
 })();

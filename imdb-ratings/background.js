@@ -13,6 +13,8 @@
 //   {rating, votes, year, imdbID, kind, matchedTitle, ts, stale, source}
 //   {rating: null, ...}                       no match anywhere
 //   {error: 'nokey' | 'http' | 'limit'}       nothing stored and OMDb failed
+// and {type: 'episodes', imdbID, season} for one season's episode ratings
+// (see lookupEpisodes).
 
 importScripts('db.js');
 
@@ -64,7 +66,7 @@ async function openSettings() {
 chrome.runtime.onInstalled.addListener((details) => {
   chrome.alarms.create('db-refresh', { periodInMinutes: DB_CHECK_MINUTES });
   if (details.reason === 'install') {
-    // Open the panel and let the user start the first (240 MB) build
+    // Open the panel and let the user start the first (280 MB) build
     // themselves. Nothing downloads until they click Update now.
     openSettings();
   } else {
@@ -150,6 +152,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const year = /^(19|20)\d\d$/.test(String(msg.year || '')) ? String(msg.year) : null;
     lookup(msg.title, kind, !!msg.refresh, year).then(sendResponse, (e) => sendResponse({ error: String(e) }));
     return true; // keep the channel open for the async reply
+  }
+  if (msg.type === 'episodes' && /^tt\d+$/.test(msg.imdbID || '') && Number.isInteger(msg.season) && msg.season >= 0) {
+    lookupEpisodes(msg.imdbID, msg.season).then(sendResponse, (e) => sendResponse({ episodes: null, error: String(e) }));
+    return true;
   }
   if (msg.type === 'usage') {
     usage().then(sendResponse);
@@ -300,6 +306,48 @@ async function maybeRefresh() {
 
 // ----------------------------------------------------------------- lookups
 
+// Streaming sites wrap titles in packaging IMDb doesn't use. When the exact
+// title isn't in the database, these variants are tried, safest first:
+//   "Damaged (2024)"            -> "Damaged", year 2024
+//   "Helluva Boss - Season 3A", "Timbiriche season-1" -> without the season
+//   "Greater [OV]"              -> without a trailing [note]
+//   "Red Eye (UK)"              -> without a trailing (note)
+//   "Clip: Full Custom Garage"  -> without "Clip:"
+// Only packaging is removed. Matching on the part before a colon was tried
+// and dropped: it mostly found a different title ("Dunkirk: The Real Story"
+// is not the 1958 film), and a new spinoff not yet in IMDb's data ("Star
+// Trek: …") would borrow the original show's rating.
+// Measured on 190 Prime Video titles: 83% matched before, 86% after, and no
+// wrong matches; nearly all the rest aren't in IMDb's data under any name.
+function titleVariants(title, kind) {
+  const out = [];
+  let t = title;
+  let year = null;
+  const y = t.match(/\s*\(((?:19|20)\d\d)\)\s*$/);
+  if (y) {
+    year = y[1];
+    t = t.slice(0, y.index);
+  }
+  t = t
+    .replace(/\s*[-–:,]?\s*season[\s-]*\d+[a-z]?\s*$/i, '')
+    .replace(/\s*\[[^\]]*\]\s*$/, '')
+    .replace(/\s*\([^()]{1,25}\)\s*$/, '') // "Red Eye (UK)", "The Office (US)", "(Dubbed)"
+    .replace(/^clip:\s*/i, '')
+    .trim();
+  if (t && t !== title) out.push({ title: t, kind, year });
+  return out;
+}
+
+async function lookupLocal(title, kind, year) {
+  const exact = await RatingsDB.lookup(title, kind, year);
+  if (exact) return exact;
+  for (const v of titleVariants(title, kind)) {
+    const hit = await RatingsDB.lookup(v.title, v.kind, v.year || year);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 // Entries looked up with a type hint are stored separately from untyped
 // ones, since the match can differ.
 // 'r:<title>', 'r:series:<title>', 'r:series:2026:<title>': the more the
@@ -340,13 +388,16 @@ async function lookup(title, kind, refresh, year) {
   if (kind) broaderKeys.push(storeKey(title, null, null));
 
   const stored = (await chrome.storage.local.get(key))[key];
-  if (stored && (!refresh || !isStale(stored))) {
+  const fresh = stored && (!refresh || !isStale(stored));
+  if (fresh && stored.rating != null) {
     return { ...stored, stale: isStale(stored) };
   }
 
-  // Nothing stored, or a stale entry we've been asked to refresh. The local
-  // database answers first; it costs no requests.
-  const local = await RatingsDB.lookup(title, kind, year);
+  // Nothing stored, a stale entry we've been asked to refresh, or a
+  // remembered miss. The local database answers first; it costs no requests.
+  // A remembered miss (OMDb's, from while there was no database, say) must
+  // not hide a rating the database has now, so it gets this check too.
+  const local = await lookupLocal(title, kind, year);
   if (local) {
     const entry = { ...local, ts: Date.now() };
     const writes = { [key]: entry };
@@ -354,6 +405,7 @@ async function lookup(title, kind, refresh, year) {
     await chrome.storage.local.set(writes);
     return { ...entry, stale: false };
   }
+  if (fresh) return { ...stored, stale: isStale(stored) }; // still a miss
 
   // Without a key, or with the fallback switched off, a local miss is simply
   // a miss. (If there is no local database either, fetchRating() reports
@@ -375,6 +427,47 @@ async function lookup(title, kind, refresh, year) {
       if (entry.rating != null) for (const k of broaderKeys) writes[k] = entry;
       await chrome.storage.local.set(writes);
       return { ...entry, stale: false };
+    })
+    .finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
+// Episode ratings for one season of a series, by the series' IMDb ID:
+//   {episodes: {"<episode>": [rating, votes | null]}, source} or {episodes: null}
+// The local database answers first. Failing that (no database, or a season
+// newer than the last weekly build), and with the OMDb fallback on and a
+// key saved, OMDb's season listing: one request per season, remembered for
+// a week because new episodes keep collecting votes. OMDb gives no vote
+// counts per episode, hence null.
+const SEASON_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function lookupEpisodes(imdbID, season) {
+  const local = await RatingsDB.lookupEpisodes(imdbID, season).catch(() => null);
+  if (local) return { episodes: local, source: 'local' };
+
+  const key = 'e:' + imdbID + ':' + season;
+  const stored = (await chrome.storage.local.get(key))[key];
+  if (stored && Date.now() - stored.ts < SEASON_REFRESH_MS) return { episodes: stored.episodes, source: 'omdb' };
+
+  const { omdbFallback = true, omdbKey } = await chrome.storage.sync.get(['omdbFallback', 'omdbKey']);
+  if (!omdbFallback || !omdbKey) return { episodes: stored ? stored.episodes : null };
+
+  if (inFlight.has(key)) return inFlight.get(key);
+  const p = schedule(() => omdbRequest({ i: imdbID, Season: String(season) }))
+    .then(async (r) => {
+      if (r.error) return { episodes: stored ? stored.episodes : null, error: r.error };
+      const eps = {};
+      if (r.data.Response === 'True') {
+        for (const e of r.data.Episodes || []) {
+          const n = Number(e.Episode);
+          const rating = parseFloat(e.imdbRating);
+          if (Number.isInteger(n) && Number.isFinite(rating)) eps[n] = [rating, null];
+        }
+      }
+      const episodes = Object.keys(eps).length ? eps : null;
+      await chrome.storage.local.set({ [key]: { episodes, ts: Date.now() } });
+      return { episodes, source: 'omdb' };
     })
     .finally(() => inFlight.delete(key));
   inFlight.set(key, p);
@@ -411,7 +504,11 @@ async function countRequest() {
   await chrome.storage.local.set({ usage: { day, count } });
 }
 
-async function fetchRating(title, kind, year) {
+// One OMDb request with the shared rules: needs a key, respects the pause
+// after the daily limit, counts toward today's usage, and turns OMDb's
+// errors into {error: 'nokey' | 'limit' | 'http'}. Otherwise {data}, the
+// parsed answer, which may still be {Response: 'False'} for "not found".
+async function omdbRequest(params) {
   const { omdbKey } = await chrome.storage.sync.get('omdbKey');
   if (!omdbKey) return { error: 'nokey' };
 
@@ -420,9 +517,7 @@ async function fetchRating(title, kind, year) {
 
   const url = new URL('https://www.omdbapi.com/');
   url.searchParams.set('apikey', omdbKey);
-  url.searchParams.set('t', title);
-  if (kind) url.searchParams.set('type', kind);
-  if (year) url.searchParams.set('y', year);
+  for (const [k, v] of Object.entries(params)) if (v != null) url.searchParams.set(k, v);
 
   await countRequest();
   let res;
@@ -456,6 +551,13 @@ async function fetchRating(title, kind, year) {
     return { error: 'limit' };
   }
   if (!res.ok || !data) return { error: 'http' };
+  return { data };
+}
+
+async function fetchRating(title, kind, year) {
+  const r = await omdbRequest({ t: title, type: kind, y: year });
+  if (r.error) return r;
+  const data = r.data;
   if (data.Response !== 'True') return { rating: null };
 
   // OMDb's title search is fuzzy: asked for "Youth" it can answer with
@@ -490,29 +592,30 @@ function sameTitle(a, b) {
 
 // One request, bypassing the pause, so the options page can show exactly what
 // OMDb says about the saved key. A success clears any pause.
+// The settings panel's Test button: one title and one season request through
+// the same omdbRequest() the lookups use, so a pass means both kinds work.
+// A pause after an earlier "limit reached" is lifted first: the user is
+// asking to try now.
 async function testKey() {
   const { omdbKey } = await chrome.storage.sync.get('omdbKey');
   if (!omdbKey) return { ok: false, detail: 'No key saved.' };
-  const url = new URL('https://www.omdbapi.com/');
-  url.searchParams.set('apikey', omdbKey);
-  url.searchParams.set('i', 'tt0111161'); // The Shawshank Redemption
-  await countRequest();
-  let res;
-  try {
-    res = await fetch(url.toString());
-  } catch (e) {
-    return { ok: false, detail: 'Network error: ' + e };
-  }
-  const text = await res.text();
-  let data = null;
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    /* leave null */
-  }
-  if (res.ok && data && data.Response === 'True') {
-    await chrome.storage.local.remove('limitPauseUntil');
-    return { ok: true, detail: data.Title + ' (' + data.Year + ') rated ' + data.imdbRating };
-  }
-  return { ok: false, detail: 'HTTP ' + res.status + ': ' + ((data && data.Error) || text.slice(0, 200)) };
+  await chrome.storage.local.remove('limitPauseUntil');
+  omdbKeyRejected = false;
+
+  const NAMES = { nokey: 'OMDb says the key is invalid or not activated yet', limit: 'daily limit reached', http: 'could not reach OMDb' };
+  const title = await omdbRequest({ i: 'tt0111161' }); // The Shawshank Redemption
+  if (title.error) return { ok: false, detail: NAMES[title.error] || title.error };
+  if (title.data.Response !== 'True') return { ok: false, detail: title.data.Error || 'unexpected answer' };
+
+  const season = await omdbRequest({ i: 'tt0903747', Season: '1' }); // Breaking Bad
+  const rated = season.data && season.data.Response === 'True'
+    ? (season.data.Episodes || []).filter((e) => Number.isFinite(parseFloat(e.imdbRating))).length
+    : 0;
+  const d = title.data;
+  return {
+    ok: !!rated,
+    detail: d.Title + ' (' + d.Year + ') rated ' + d.imdbRating +
+      (rated ? '; episodes work too (Breaking Bad season 1: ' + rated + ' rated episodes).' : '; but the season lookup failed: ' +
+        (season.error ? NAMES[season.error] || season.error : (season.data && season.data.Error) || 'no ratings') + '.'),
+  };
 }

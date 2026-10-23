@@ -51,6 +51,15 @@
     return cleanTitle(article.getAttribute('data-card-title'));
   }
 
+  // The title on a title page's hero: the title-art image's alt, or else the
+  // page title, "Watch Carrie - Season 1 | Prime Video".
+  function atfTitle(el) {
+    const art = el.querySelector('[data-testid="title-art"] img[alt]');
+    const fromArt = cleanTitle((art && art.alt) || '');
+    if (fromArt) return fromArt;
+    return cleanTitle(document.title.replace(/^watch\s+/i, '').replace(/\s*\|\s*prime video\s*$/i, ''));
+  }
+
   function ariaOrAltTitle(el) {
     const a = el.querySelector('a[aria-label]');
     const img = el.querySelector('img[alt]');
@@ -105,13 +114,7 @@
         // different widths; only the visible copy gets the chip.
         kind: 'detail',
         selector: '[data-testid="atf-component-next-gen"]',
-        titleOf(el) {
-          const art = el.querySelector('[data-testid="title-art"] img[alt]');
-          const fromArt = cleanTitle((art && art.alt) || '');
-          if (fromArt) return fromArt;
-          // "Watch Carrie - Season 1 | Prime Video"
-          return cleanTitle(document.title.replace(/^watch\s+/i, '').replace(/\s*\|\s*prime video\s*$/i, ''));
-        },
+        titleOf: atfTitle,
         typeOf(el) {
           const play = el.querySelector('[data-automation-id="dp-atf-play-button"]');
           const badge = el.querySelector('[data-automation-id="metadata-badge"]');
@@ -155,6 +158,39 @@
         },
         place(host, badge) {
           host.appendChild(badge);
+        },
+      },
+      {
+        // Episode list on a series page: #tab-content-episodes with one
+        // [data-testid="episode-list-item"] per episode, whose number and
+        // title are one heading, "1. Daybreak", inside
+        // [data-automation-id^="ep-title-episode-"]. Each season is its own
+        // page; the season dropdown ([data-testid="dp-season-selector"]) is
+        // labelled "Season 1", as is the page title. No dropdown and no
+        // season in the title means a single season.
+        kind: 'episodes',
+        selector: '#tab-content-episodes',
+        showOf() {
+          const atf = document.querySelector('[data-testid="atf-component-next-gen"]');
+          return atf ? atfTitle(atf) : null;
+        },
+        seasonOf() {
+          const label = document.querySelector('[data-testid="dp-season-selector"] label');
+          const m = ((label && label.textContent) || document.title).match(/season\s*(\d+)/i);
+          if (m) return Number(m[1]);
+          return label ? null : 1;
+        },
+        items(el) {
+          return [...el.querySelectorAll('[data-testid="episode-list-item"]')]
+            .map((item) => {
+              const row = item.querySelector('[data-automation-id^="ep-title-episode-"] h3');
+              const m = row && row.textContent.trim().match(/^(\d+)\.\s/);
+              return { number: m ? Number(m[1]) : NaN, row };
+            })
+            .filter((i) => Number.isInteger(i.number) && i.number > 0 && i.row);
+        },
+        place(row, badge) {
+          row.appendChild(badge);
         },
       },
     ],

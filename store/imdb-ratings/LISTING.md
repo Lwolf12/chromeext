@@ -20,14 +20,16 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 > Netflix, Prime Video, Hulu or HBO Max, every title card gets a small
 > rating badge. Hovering a title adds the year and vote count to the site's
 > own preview, with a link to the title's page. Banners and title pages get
-> a rating chip too. Prefer a cleaner look? Card badges can show only when
-> the mouse is over a card, or not at all.
+> a rating chip too. A show's episode list also gets a rating next to every
+> episode, so the standout episodes and seasons are easy to spot. Prefer a
+> cleaner look? Card badges can show only when the mouse is
+> over a card, or not at all.
 >
 > HOW IT WORKS
 > The extension builds its own ratings database in your browser from IMDb's
-> public data (about 240 MB, a few minutes, refreshed weekly; the refresh
+> public data (about 280 MB, a few minutes, refreshed weekly; the refresh
 > can be switched off for metered connections). Lookups then happen on your
-> device, with no requests to anyone. Nothing downloads until you click
+> device, without sending the titles you browse to anyone. Nothing downloads until you click
 > Update now in the settings, which open in a small window right after installing.
 > Later, the star icon in Chrome's puzzle-piece menu opens them (pin it to
 > keep it in the toolbar). Only use some of the services? Untick the others
@@ -132,6 +134,6 @@ Visibility **Public**, all regions, free.
   Google or Amazon search) render the same page but get no chip; matching
   `/dp/*` would mean every Amazon product page, which is not worth the
   broader permission.
-- **Large download.** Reviewers sometimes ask why an extension pulls 240 MB.
+- **Large download.** Reviewers sometimes ask why an extension pulls 280 MB.
   The description and the settings panel already explain it and nothing
   downloads without a click.

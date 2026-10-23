@@ -13,6 +13,7 @@ const PHASES = {
   starting: 'Starting…',
   ratings: 'Downloading ratings',
   basics: 'Downloading title list',
+  episodes: 'Downloading episode list',
   writing: 'Saving to the database',
 };
 
@@ -52,7 +53,8 @@ function showBuild(build) {
     box.hidden = false;
     btn.disabled = true;
     $('buildBar').value = build.pct || 0;
-    const detail = build.phase === 'basics' && build.detail ? ' (' + build.detail.toLocaleString() + ' titles so far)' : '';
+    const unit = { basics: ' titles', episodes: ' episodes' }[build.phase];
+    const detail = unit && build.detail ? ' (' + build.detail.toLocaleString() + unit + ' so far)' : '';
     $('buildText').textContent = (PHASES[build.phase] || build.phase) + ' ' + Math.round((build.pct || 0) * 100) + '%' + detail;
     return;
   }
@@ -84,9 +86,13 @@ async function refreshStats() {
   }
   const l = u.local || {};
   builtAt = l.present ? l.builtAt || 0 : 0;
-  $('localStatus').textContent = l.present
-    ? l.titles.toLocaleString() + ' titles, built ' + l.built + ' (' + ago(l.builtAt) + ').'
-    : 'Not built yet. Click Update now; it takes a few minutes.';
+  // A database built before episode ratings existed has titles only; the
+  // next weekly refresh (or Update now) adds the episodes.
+  $('localStatus').textContent = !l.present
+    ? 'Not built yet. Click Update now; it takes a few minutes.'
+    : l.episodes
+      ? l.titles.toLocaleString() + ' titles and ' + l.episodes.toLocaleString() + ' episodes, built ' + l.built + ' (' + ago(l.builtAt) + ').'
+      : l.titles.toLocaleString() + ' titles, built ' + l.built + ' (' + ago(l.builtAt) + '). Episode ratings arrive with the next update.';
   $('auto').checked = u.autoRefresh !== false;
   showBuild(u.build);
   $('stored').textContent = u.stored.toLocaleString();
@@ -96,7 +102,7 @@ async function refreshStats() {
 
 // Update now rebuilds regardless of age, but a database under a day old is
 // almost certainly current, so ask for a second click before re-downloading
-// 240 MB.
+// 280 MB.
 let builtAt = 0;
 let confirmUntil = 0;
 
@@ -277,7 +283,7 @@ $('clear').addEventListener('click', async () => {
 });
 
 $('deleteDb').addEventListener('click', async () => {
-  if (!confirm('Delete the local ratings database? Ratings then come from OMDb only (if set up) until you click Update now, which downloads about 240 MB again.')) return;
+  if (!confirm('Delete the local ratings database? Ratings then come from OMDb only (if set up) until you click Update now, which downloads about 280 MB again.')) return;
   // Emptying ~365,000 titles takes a few seconds; keep Update now from
   // acting on the old build time meanwhile (it would say "current").
   $('build').disabled = true;

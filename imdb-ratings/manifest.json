@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Show IMDb Ratings on Streaming Services",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Shows the IMDb user rating on top of each title card while you browse Netflix, Prime Video, Hulu and HBO Max.",
   "icons": {
     "16": "icons/icon16.png",

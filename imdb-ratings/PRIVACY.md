@@ -1,6 +1,6 @@
 # Privacy policy: Show IMDb Ratings on Streaming Services
 
-Last updated: 2026-10-19
+Last updated: 2026-10-23
 
 This extension shows IMDb user ratings on title cards while you browse
 Netflix, Prime Video, Hulu and HBO Max. It has no accounts, no analytics and
@@ -35,6 +35,12 @@ IndexedDB, and is removed when you uninstall the extension:
   year and whether it is a movie or series) together with your API key, so
   OMDb can answer. OMDb's own privacy policy applies to those requests.
   With the fallback off, nothing is ever sent to OMDb.
+- **To Netflix (netflix.com)**: Netflix's episode cards (rows like "Hooked
+  from the First Episode") don't say which show they belong to. For each
+  such card, once, the extension asks Netflix for that episode's public
+  page, signed out (without your Netflix cookies), and reads the show's ID
+  and name from it. That is the same page anyone can open; it tells Netflix
+  nothing beyond what browsing Netflix already does.
 
 Nothing else is sent anywhere. The extension does not send your browsing
 activity, your watch history, the pages you visit or anything you type to
@@ -45,8 +51,9 @@ cards, banners and preview panels it decorates.
 ## Data sharing and sale
 
 No data is sold, shared with third parties or used for advertising. The
-only third parties that receive anything are IMDb and OMDb, as described
-above, and only to do what the extension does.
+only third parties that receive anything are IMDb and OMDb (and Netflix,
+for its own public episode pages), as described above, and only to do what
+the extension does.
 
 ## Changes and contact
 

@@ -1,6 +1,7 @@
 /* Give the card anchors a positioning context without changing their flow. */
 a[data-uia="standard-card"],
-a[data-uia="progress-card"] {
+a[data-uia="progress-card"],
+[data-uia="episodic-card+still"] {
   position: relative;
 }
 
@@ -137,6 +138,13 @@ section[data-testid="details-hero-container"] .imdbext-info,
   bottom: 6px;
 }
 
+/* Hulu's tall "Because you watched" cards: the brand logo is top-right. */
+[data-testid="medium-emphasis-vertical-tile"] > .imdbext-badge--card {
+  top: 10px;
+  right: auto;
+  left: 10px;
+}
+
 /* Hulu: the preview panel's text lines carry a 21px side margin; match it.
    The banner's subtitle sits in a flex row, so the chip rides beside it. */
 [data-testid="preview-panel-info-panel"] > .imdbext-badge--detail {
@@ -217,7 +225,11 @@ article[data-testid="card"]:not(:has([data-testid="standard-mini-details"])) {
 
 /* Settings: card badges only on hover, and "n/a" hidden on cards. The
    content script sets these classes on <html>. The badge's parent is the
-   card or a full-size part of it, so hovering the card hovers the parent. */
+   card or a full-size part of it, so hovering the card hovers the parent.
+   The badge waits 0.7 s before fading in: Netflix (about 0.45 s), Prime and
+   Hulu open their own preview, with the rating, over a hovered card, and the
+   preview then takes the hover, so the badge never flashes up underneath.
+   Hovering without a preview still shows it. Hiding is immediate. */
 html.imdbext-cards-hover .imdbext-badge--card {
   opacity: 0;
   transition: opacity 0.15s;
@@ -226,8 +238,19 @@ html.imdbext-cards-hover .imdbext-badge--card {
 html.imdbext-cards-hover :hover > .imdbext-badge--card,
 html.imdbext-cards-hover [data-imdbext-title]:hover .imdbext-badge--card {
   opacity: 1;
+  transition-delay: 0.7s;
 }
 
 html.imdbext-hide-na .imdbext-badge--card.imdbext-badge--none {
   display: none;
+}
+
+/* Episode rating in an episode list row, between the episode title and its
+   duration (Netflix's .titleCardList-title row). */
+.imdbext-badge--episode {
+  flex: none;
+  margin: 0 10px;
+  padding: 1px 6px;
+  font-size: 12px;
+  vertical-align: middle;
 }

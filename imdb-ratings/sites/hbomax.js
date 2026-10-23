@@ -153,6 +153,37 @@
         },
       },
       {
+        // Episode list on a show page: a "Season 1" dropdown above
+        // [data-testid="generic-show-page-rail-episodes-tabbed-content_rail"],
+        // one a[data-testid$="_tile"] per episode labelled "Season 1,
+        // Episode 1: Celebrity Sexpert. 1 of 6. Rated TV-14, …" (once the
+        // bidi marks are stripped), its first <p> the title line
+        // "1. Celebrity Sexpert". The show is the page hero's. The card
+        // target above skips these tiles (no show name in their labels).
+        kind: 'episodes',
+        selector: '[data-testid="generic-show-page-rail-episodes-tabbed-content_rail"]',
+        showOf() {
+          const hero = document.querySelector('section[data-testid="details-hero-container"]');
+          return hero ? titleFromMyList(hero) : null;
+        },
+        seasonOf(el) {
+          const ep = this.items(el)[0];
+          return ep ? ep.season : null;
+        },
+        items(el) {
+          const eps = [...el.querySelectorAll('a[data-testid$="_tile"]')]
+            .map((tile) => {
+              const m = strip(tile.getAttribute('aria-label')).match(/season\s*(\d+),\s*episode\s*(\d+)/i);
+              return m ? { season: Number(m[1]), number: Number(m[2]), row: tile.querySelector('p') } : null;
+            })
+            .filter((e) => e && e.row);
+          return eps.filter((e) => e.season === eps[0].season);
+        },
+        place(row, badge) {
+          row.appendChild(badge);
+        },
+      },
+      {
         kind: 'card',
         selector: '[data-testid$="_showcaseTile"]',
         titleOf(el) {

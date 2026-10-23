@@ -16,6 +16,9 @@
   if (!site || !Array.isArray(site.targets)) return;
 
   const PROCESSED = 'data-imdbext-title';
+  // A title's own badge, not the episode badges an episode list inside the
+  // same host may carry (Netflix's detail modal holds both).
+  const OWN_BADGE = '.imdbext-badge:not(.imdbext-badge--episode)';
   let cardMode = 'always'; // card badges: 'always' | 'hover' | 'off'
   const warned = new Set();
   const MESSAGES = {
@@ -55,18 +58,29 @@
 
   function scan(root) {
     for (const target of site.targets) {
+      if (target.kind === 'episodes') {
+        for (const el of root.querySelectorAll(target.selector)) scanEpisodes(el, target);
+        continue;
+      }
       if (target.kind === 'card' && cardMode === 'off') continue; // no lookups either
       for (const el of root.querySelectorAll(target.selector)) {
         const title = titlesOf(target, el)[0];
-        if (!title) continue;
-        const host = target.host(el);
-        if (!host) continue;
+        const host = title && target.host(el);
+        if (!title || !host) {
+          // Nothing to look up now. A reused node (Netflix's one preview for
+          // every card) may still carry the previous title's badge: drop it.
+          if (el.hasAttribute(PROCESSED)) {
+            el.removeAttribute(PROCESSED);
+            (host || el).querySelector(OWN_BADGE)?.remove();
+          }
+          continue;
+        }
         // Same title and badge still present: nothing to do. Sites reuse
         // nodes (Netflix's popup is one node shown for many titles), so
         // re-badge whenever the title or the host changed under us.
-        if (el.getAttribute(PROCESSED) === title && host.querySelector('.imdbext-badge')) continue;
+        if (el.getAttribute(PROCESSED) === title && host.querySelector(OWN_BADGE)) continue;
         el.setAttribute(PROCESSED, title);
-        host.querySelector('.imdbext-badge')?.remove();
+        host.querySelector(OWN_BADGE)?.remove();
         if (target.kind === 'card') io.observe(el);
         else decorate(el, target);
       }
@@ -115,7 +129,7 @@
 
     const host = target.host(el);
     if (!host) return;
-    host.querySelector('.imdbext-badge')?.remove();
+    host.querySelector(OWN_BADGE)?.remove();
     const badge = document.createElement('span');
     badge.className = 'imdbext-badge imdbext-badge--' + target.kind;
     badge.addEventListener('click', (e) => {
@@ -141,6 +155,64 @@
         render(badge, title, fresh, target.kind);
         if (target.kind === 'detail' && kind) syncCards(title, fresh);
       }
+    }
+  }
+
+  // Episode lists (target kind 'episodes'): the adapter names the show
+  // (showOf), the season on screen (seasonOf) and the episode rows (items:
+  // [{number, row}]), and may give the show's first year (yearOf), which
+  // tells a revival from the original ("Scrubs" 2026 vs 2001). The show's
+  // IMDb ID comes from an ordinary series lookup, then one 'episodes'
+  // request covers the whole season. The marker key is
+  // show + season + row count, so switching seasons, or the site redrawing
+  // the list, decorates it again. Episodes without a rating get no badge.
+  function scanEpisodes(el, target) {
+    const show = target.showOf(el);
+    const season = target.seasonOf(el);
+    const items = show && season != null ? target.items(el) : [];
+    if (!items.length) return;
+    const key = show + '|' + season + '|' + items.length;
+    if (el.getAttribute(PROCESSED) === key && el.querySelector('.imdbext-badge--episode')) return;
+    if (el.getAttribute(PROCESSED) === key && el.hasAttribute('data-imdbext-done')) return; // looked up, nothing rated
+    el.setAttribute(PROCESSED, key);
+    el.removeAttribute('data-imdbext-done');
+    decorateEpisodes(el, target, key, show, season);
+  }
+
+  async function decorateEpisodes(el, target, key, show, season) {
+    let series, result;
+    try {
+      const year = typeof target.yearOf === 'function' ? target.yearOf(el) || null : null;
+      series = await chrome.runtime.sendMessage({ type: 'rating', title: show, kind: 'series', year });
+      if (!series || !series.imdbID || el.getAttribute(PROCESSED) !== key) return;
+      result = await chrome.runtime.sendMessage({ type: 'episodes', imdbID: series.imdbID, season });
+    } catch (e) {
+      warnOnce('context', String(e));
+      return;
+    }
+    if (el.getAttribute(PROCESSED) !== key) return; // season switched meanwhile
+    el.setAttribute('data-imdbext-done', '');
+    const eps = (result && result.episodes) || {};
+    for (const { number, row } of target.items(el)) {
+      row.querySelector('.imdbext-badge--episode')?.remove();
+      const ep = eps[number];
+      if (!ep) continue;
+      const [rating, votes] = ep;
+      const badge = document.createElement('span');
+      badge.className = 'imdbext-badge imdbext-badge--episode';
+      const score = document.createElement('span');
+      score.className = 'imdbext-score';
+      score.textContent = rating.toFixed(1);
+      badge.appendChild(score);
+      badge.title = 'IMDb rating ' + rating.toFixed(1) + ' · S' + season + ' E' + number +
+        (votes ? ' · ' + votes.toLocaleString('en-US') + ' votes' : '') + '\nClick to open the season on IMDb';
+      badge.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open('https://www.imdb.com/title/' + series.imdbID + '/episodes/?season=' + season, '_blank', 'noopener');
+      });
+      if (typeof target.place === 'function') target.place(row, badge);
+      else row.appendChild(badge);
     }
   }
 
@@ -282,6 +354,12 @@
   // Initial pass, then follow the single-page app as it adds rows and popups.
   let mo = null;
   let pending = null;
+
+  // An adapter that learns something later (Netflix working out which show
+  // an episode card belongs to) asks for another pass with this event.
+  document.addEventListener('imdbext-rescan', () => {
+    if (mo) scan(document);
+  });
 
   function start() {
     if (mo) return;

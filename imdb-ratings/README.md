@@ -5,15 +5,16 @@ while browsing Netflix, Prime Video, Hulu and HBO Max. Each card gets a small
 badge with the rating. On Netflix, Prime Video and Hulu, hovering a title
 opens the site's own preview, which gets an IMDb line with the year and vote
 count; click that line to open the IMDb page. HBO Max has no preview, so
-there the badge on the card is the link. Each site is a small adapter file,
-so more services can be added.
+there the badge on the card is the link. A show's episode list gets a rating
+next to every episode, season by season (click one to open that season on
+IMDb). Each site is a small adapter file, so more services can be added.
 
-| Site | Card badge | Hover details | Notes |
-| --- | --- | --- | --- |
-| Netflix | top-right of each tile | line under the preview popup's buttons; in the featured banner, a chip beside Play / More Info | no year or type on cards; the popup's type and year lines pick the right same-named title and also correct the card |
-| Prime Video | top-right of each tile; hidden while the card is expanded | chip in the expanded card's metadata row; in the top banner, a chip beside the Watch now button; on a title's own page, a chip in the metadata row after the year | season suffixes stripped; movie/series type and, on title pages, the year passed along |
-| Hulu | top-right of each tile | line under the preview panel's metadata; also in the top banner | movie/series type from the link path |
-| HBO Max | bottom-right of each poster | none (HBO Max has no hover preview); the badge tooltip works; in the top banner, a chip beside the Watch button; on a title's own page, a chip in the My List / Rate / Trailer row | title parsed from the tile's accessibility label, including episode tiles; movie/series type from the link path; episode tiles on a title's own page name no show, so they get no badge |
+| Site | Card badge | Hover details / title pages | Episode lists | Notes |
+| --- | --- | --- | --- | --- |
+| Netflix | top-right of each tile, also on New & Popular (not on its "coming soon" rows) and on episode cards ("Hooked from the First Episode") | line under the preview popup's buttons; in the featured banner, a chip beside Play / More Info; in the full show window, a line under the buttons | in the show window's episode list, after each title | episode cards and their preview name only the episode: the show is worked out once per episode from Netflix's own page; the popup's type and year lines pick the right same-named title and also correct the card |
+| Prime Video | top-right of each tile; hidden while the card is expanded | chip in the expanded card's metadata row; in the top banner, a chip beside the Watch now button; on a title's own page, a chip in the metadata row after the year | on a series page (one page per season), after each episode heading | season suffixes stripped; movie/series type and, on title pages, the year passed along |
+| Hulu | top-right of each tile; top-left of the tall "Because you watched" cards | line under the preview panel's metadata; also in the top banner; on a series page, a chip after its metadata | on a series page, after each "S2 E1 - …" tile title | movie/series type from the link path; a series page's year tells a revival from the original |
+| HBO Max | bottom-right of each poster | none (HBO Max has no hover preview); the badge tooltip works; in the top banner, a chip beside the Watch button; on a title's own page, a chip in the My List / Rate / Trailer row | on a show page, after each episode title | title parsed from the tile's accessibility label; movie/series type from the link path |
 
 ## Setup
 
@@ -24,7 +25,7 @@ so more services can be added.
    it somewhere permanent, open `chrome://extensions`, turn on **Developer
    mode**, click **Load unpacked** and pick the `imdb-ratings` folder.)
 2. The settings open in their own small window. Click **Update now** to build the
-   ratings database (next section): about 240 MB downloaded from IMDb, a
+   ratings database (next section): about 280 MB downloaded from IMDb, a
    few minutes, with a progress bar. When it says done, open any of the
    four sites. That's it. If you closed the window first: the extension's star
    icon sits in Chrome's puzzle-piece menu (pin it to keep it in the
@@ -51,13 +52,13 @@ so more services can be added.
 
 IMDb publishes its ratings as daily data dumps, licensed for each person's
 own non-commercial use. The extension builds its database from them in your
-browser: it downloads about 240 MB from IMDb, keeps movies and series with
+browser: it downloads about 280 MB from IMDb, keeps movies and series with
 at least 25 votes (about 365,000 titles), and stores the result in the
 browser's IndexedDB. Lookups then happen locally, with no requests to anyone.
 
 Nothing downloads until you click **Update now** on the settings panel the
 first time. After that the database is rebuilt automatically once it is a
-week old (another 240 MB each time); the panel shows the title count, build
+week old (another 280 MB each time); the panel shows the title count, build
 date and progress, and the weekly refresh can be switched off there, which
 is the thing to do on a metered connection. A failed build (offline, say) is
 retried a day later.
