@@ -44,7 +44,8 @@ function showBuild(build) {
   $('buildBar').value = build.status === 'done' ? 1 : 0;
   $('buildText').textContent =
     build.status === 'done'
-      ? 'Done: ' + build.info.titles.toLocaleString() + ' titles.'
+      ? 'Done: ' + build.info.titles.toLocaleString() + ' titles. You’re all set and can close this page; ' +
+        'ratings now show on the streaming sites (reload any that are already open).'
       : 'Failed: ' + build.message + ' (will retry automatically in a day)';
 }
 
@@ -94,7 +95,7 @@ $('build').addEventListener('click', async () => {
   const fresh = builtAt && Date.now() - builtAt < 24 * 60 * 60 * 1000;
   if (fresh && Date.now() > confirmUntil) {
     confirmUntil = Date.now() + 8000;
-    showNote('Built ' + sinceBuild() + ', so it is current. Click again to rebuild anyway.');
+    showNote('Built ' + sinceBuild() + ', so it is current and there’s nothing to do; you can close this page. Click again to rebuild anyway.');
     setTimeout(() => { if (Date.now() >= confirmUntil) showNote(''); }, 8200);
     return;
   }
