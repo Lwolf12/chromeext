@@ -20,7 +20,8 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 > Netflix, Prime Video, Hulu or HBO Max, every title card gets a small
 > rating badge. Hovering a title adds the year and vote count to the site's
 > own preview, with a link to the title's page. Banners and title pages get
-> a rating chip too.
+> a rating chip too. Prefer a cleaner look? Card badges can show only when
+> the mouse is over a card, or not at all.
 >
 > HOW IT WORKS
 > The extension builds its own ratings database in your browser from IMDb's
