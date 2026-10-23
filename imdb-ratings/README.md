@@ -23,10 +23,10 @@ so more services can be added.
    [Releases page](https://github.com/Lwolf12/chromeext/releases), extract
    it somewhere permanent, open `chrome://extensions`, turn on **Developer
    mode**, click **Load unpacked** and pick the `imdb-ratings` folder.)
-2. The settings panel opens in a new tab. Click **Update now** to build the
+2. The settings open in their own small window. Click **Update now** to build the
    ratings database (next section): about 240 MB downloaded from IMDb, a
    few minutes, with a progress bar. When it says done, open any of the
-   four sites. That's it. If you closed the tab first: the extension's star
+   four sites. That's it. If you closed the window first: the extension's star
    icon sits in Chrome's puzzle-piece menu (pin it to keep it in the
    toolbar, where it shows a yellow **!** until the database is built), and
    the sites themselves show a small "Click to set up ratings" notice in
@@ -81,7 +81,7 @@ key is set. The OMDb fallback can be switched off on the settings panel.
 | `tools/build-local-db.mjs` | Builds `data/ratings.json.gz` from IMDb's data dumps. |
 | `data/` | The built database. Not in git and not in release ZIPs; each user builds their own. |
 | `badge.css` | Badge styling, including per-site placement tweaks. |
-| `options.html/js` | Per-site on/off, key entry and test, usage counter, export/import/clear of the stored ratings. |
+| `options.html/js` | Database build and status, per-site on/off, badge options, OMDb key entry and test, usage counter, clearing remembered ratings, deleting the database. |
 
 ## Adding another streaming site
 
@@ -114,8 +114,7 @@ this one."
   looked up. Every answer is stored permanently and shown immediately; hits
   are re-checked after 30 days and misses after 3, in the background. If
   OMDb reports the daily limit, requests pause for an hour and stored
-  ratings keep showing. The settings panel shows today's request count and
-  can export/import the store as JSON.
+  ratings keep showing. The settings panel shows today's request count.
 - **Site markup changes.** Selectors rely on each site's stable test
   attributes rather than their hashed class names, but a redesign can still
   break an adapter. Only that site's adapter file needs updating.

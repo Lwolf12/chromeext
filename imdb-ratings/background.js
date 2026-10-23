@@ -31,14 +31,34 @@ let omdbKeyRejected = false; // OMDb called the saved key invalid
 
 // ---------------------------------------------------------------- events
 
-chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
+chrome.action.onClicked.addListener(() => openSettings());
 
-// The settings panel in a plain tab. The embedded options dialog that
-// openOptionsPage() shows is easy to miss, and users who skip it don't know
-// the toolbar icon (hidden in the puzzle-piece menu until pinned) opens it.
-function openSettings() {
-  return chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
-    .catch(() => chrome.runtime.openOptionsPage());
+// The settings open in their own small window, sized so every setting shows
+// (two columns, see options.html). Chrome's embedded options dialog was easy
+// to miss and too short; a full tab was mostly white space. A window that is
+// already open is brought to the front instead of opening a second one.
+const SETTINGS_WINDOW = { width: 900, height: 680 };
+
+async function openSettings() {
+  const { settingsWindow } = await chrome.storage.session.get('settingsWindow');
+  if (settingsWindow != null) {
+    try {
+      await chrome.windows.update(settingsWindow, { focused: true });
+      return;
+    } catch (e) {
+      /* it was closed */
+    }
+  }
+  try {
+    const w = await chrome.windows.create({
+      url: chrome.runtime.getURL('options.html'),
+      type: 'popup',
+      ...SETTINGS_WINDOW,
+    });
+    await chrome.storage.session.set({ settingsWindow: w.id });
+  } catch (e) {
+    await chrome.runtime.openOptionsPage();
+  }
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -52,17 +72,18 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
-// A "!" on the toolbar icon until the first database build, so a user who
-// closed the panel still sees that setup isn't finished.
+// A "!" on the toolbar icon while setup is needed (no database and no
+// working OMDb key, the same test as the pages' notice), so a user who closed
+// the panel still sees that it isn't finished. OMDb-only users get no "!".
 updateBadge();
 
 async function updateBadge() {
-  const built = !!(await RatingsDB.getMeta().catch(() => null));
-  await chrome.action.setBadgeText({ text: built ? '' : '!' });
+  const { needed } = await setupStatus();
+  await chrome.action.setBadgeText({ text: needed ? '!' : '' });
   await chrome.action.setBadgeBackgroundColor({ color: '#f5c518' });
   await chrome.action.setBadgeTextColor({ color: '#000' });
   await chrome.action.setTitle({
-    title: built ? 'IMDb Ratings: settings' : 'IMDb Ratings: click to build the ratings database',
+    title: needed ? 'IMDb Ratings: click to build the ratings database' : 'IMDb Ratings: settings',
   });
 }
 
@@ -78,7 +99,9 @@ async function setupStatus() {
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.omdbKey) omdbKeyRejected = false;
+  if (area !== 'sync') return;
+  if (changes.omdbKey) omdbKeyRejected = false;
+  if (changes.omdbKey || changes.omdbFallback) updateBadge();
 });
 
 // Stored answers from before OMDb's fuzzy matches were rejected may carry
@@ -142,6 +165,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.type === 'setup') {
     setupStatus().then(sendResponse);
+    return true;
+  }
+  if (msg.type === 'delete-db') {
+    deleteDatabase().then(sendResponse, (e) => sendResponse({ ok: false, message: String(e) }));
     return true;
   }
   if (msg.type === 'open-settings') {
@@ -230,6 +257,21 @@ async function handleBuildMessage(msg) {
     await setBuildState({ status: 'error', message: msg.message, at: Date.now() });
     await closeOffscreen();
   }
+}
+
+// Settings > Advanced > Delete database: back to the no-database state, for
+// OMDb-only use or to test a first build. Ratings remembered from the
+// database go too (OMDb ones stay), so nothing still shows from it. With no
+// database the weekly refresh stays idle until Update now builds one again.
+async function deleteDatabase() {
+  if ((await getBuildState()).status === 'running') return { ok: false, message: 'a build is running' };
+  await RatingsDB.clear();
+  const all = await chrome.storage.local.get(null);
+  const local = Object.keys(all).filter((k) => k.startsWith('r:') && all[k] && all[k].source === 'local');
+  if (local.length) await chrome.storage.local.remove(local);
+  await setBuildState({ status: 'idle' });
+  await updateBadge();
+  return { ok: true, forgotten: local.length };
 }
 
 // Best effort: Chrome only reports this on Android and ChromeOS. On desktop
@@ -401,7 +443,10 @@ async function fetchRating(title, kind, year) {
   // OMDb uses 401 for both a bad/unactivated key and the daily limit, so
   // read the message before deciding.
   if (/invalid api key/i.test(errText)) {
-    omdbKeyRejected = true;
+    if (!omdbKeyRejected) {
+      omdbKeyRejected = true;
+      updateBadge();
+    }
     return { error: 'nokey' };
   }
   if (res.status === 401 || /limit/i.test(errText)) {

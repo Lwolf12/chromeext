@@ -21,6 +21,16 @@ downloads are counted per extension. A workflow
    `imdb-ratings/data/`: that database is built by each user from IMDb's
    dumps, which IMDb licenses for personal use only, so it must not be
    redistributed.
+4. Add a short "What's new" to that release's notes, above the install
+   text the workflow wrote: a few bullets covering this release only, never
+   a running history (older notes stay on older releases).
+
+   ```bash
+   gh release edit imdb-ratings-v0.5.0 --notes-file notes.md
+   ```
+
+   where `notes.md` holds the What's new bullets followed by the existing
+   install text (`gh release view imdb-ratings-v0.5.0 --json body`).
 
 ## Download counts
 

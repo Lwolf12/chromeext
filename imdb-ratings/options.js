@@ -62,9 +62,9 @@ function showBuild(build) {
   $('buildText').textContent = 'Failed: ' + build.message + ' (will retry automatically in a day)';
 }
 
-// Opened as a tab (after installing, or from the notice on a streaming
-// site), the panel offers to close itself. Inside Chrome's options dialog
-// there is no tab, so the button stays hidden.
+// In its own window (the usual way it opens) or a tab, the panel offers to
+// close itself; closing the window's only tab closes the window. Inside
+// Chrome's embedded options dialog there is no tab, so the button stays hidden.
 chrome.tabs.getCurrent((tab) => {
   if (!tab) return;
   $('closeTab').hidden = false;
@@ -269,52 +269,34 @@ async function ratingEntries() {
   return out;
 }
 
-$('export').addEventListener('click', async () => {
-  const entries = await ratingEntries();
-  const blob = new Blob([JSON.stringify(entries, null, 1)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'imdb-ratings-' + new Date().toISOString().slice(0, 10) + '.json';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  say('Exported ' + Object.keys(entries).length + ' answers.');
-});
-
-$('import').addEventListener('click', () => $('file').click());
-
-$('file').addEventListener('change', async () => {
-  const file = $('file').files[0];
-  if (!file) return;
-  let data;
-  try {
-    data = JSON.parse(await file.text());
-  } catch (e) {
-    say('That file is not valid JSON.', 'bad');
-    return;
-  }
-  const existing = await ratingEntries();
-  const toSet = {};
-  let added = 0;
-  let updated = 0;
-  for (const [k, v] of Object.entries(data)) {
-    if (!k.startsWith('r:') || !v || typeof v !== 'object') continue;
-    const cur = existing[k];
-    if (!cur) added++;
-    else if ((v.ts || 0) > (cur.ts || 0)) updated++;
-    else continue; // keep the newer one we already have
-    toSet[k] = v;
-  }
-  await chrome.storage.local.set(toSet);
-  $('file').value = '';
-  say('Imported: ' + added + ' new, ' + updated + ' updated.');
-  refreshStats();
-});
-
 $('clear').addEventListener('click', async () => {
   const keys = Object.keys(await ratingEntries());
   await chrome.storage.local.remove(keys);
-  say('Cleared ' + keys.length + ' stored answers.');
+  say('Cleared ' + keys.length + ' remembered ratings.');
+  refreshStats();
+});
+
+$('deleteDb').addEventListener('click', async () => {
+  if (!confirm('Delete the local ratings database? Ratings then come from OMDb only (if set up) until you click Update now, which downloads about 240 MB again.')) return;
+  // Emptying ~365,000 titles takes a few seconds; keep Update now from
+  // acting on the old build time meanwhile (it would say "current").
+  $('build').disabled = true;
+  $('deleteDb').disabled = true;
+  say('Deleting the database…');
+  let r;
+  try {
+    r = await chrome.runtime.sendMessage({ type: 'delete-db' });
+  } catch (e) {
+    r = { ok: false, message: String(e) };
+  }
+  $('deleteDb').disabled = false;
+  $('build').disabled = false;
+  if (r && r.ok) {
+    builtAt = 0;
+    confirmUntil = 0;
+    showNote('');
+    say('Database deleted' + (r.forgotten ? ', with ' + r.forgotten.toLocaleString() + ' ratings remembered from it' : '') + '. Reload open streaming tabs to see the change.');
+  } else say('Could not delete the database: ' + ((r && r.message) || 'no answer from the extension') + '.', 'bad');
   refreshStats();
 });
 

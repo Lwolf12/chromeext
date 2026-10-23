@@ -27,7 +27,7 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 > public data (about 240 MB, a few minutes, refreshed weekly; the refresh
 > can be switched off for metered connections). Lookups then happen on your
 > device, with no requests to anyone. Nothing downloads until you click
-> Update now in the settings, which open in a tab right after installing.
+> Update now in the settings, which open in a small window right after installing.
 > Later, the star icon in Chrome's puzzle-piece menu opens them (pin it to
 > keep it in the toolbar). Only use some of the services? Untick the others
 > in the settings and the extension stays idle there.

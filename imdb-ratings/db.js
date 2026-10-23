@@ -134,5 +134,14 @@ const RatingsDB = (() => {
     }
   }
 
-  return { normalise, open, getMeta, status, lookup, writeIndex };
+  // Empties both title stores and the meta record: the state of a fresh
+  // install. The next Update now builds from scratch.
+  async function clear() {
+    const db = await open();
+    const tx = db.transaction(['meta', 'titles_a', 'titles_b'], 'readwrite');
+    for (const s of ['meta', 'titles_a', 'titles_b']) tx.objectStore(s).clear();
+    await complete(tx);
+  }
+
+  return { normalise, open, getMeta, status, lookup, writeIndex, clear };
 })();

@@ -4,110 +4,146 @@
   <meta charset="utf-8">
   <title>IMDb Ratings settings</title>
   <style>
-    body { font: 14px/1.45 system-ui, sans-serif; margin: 0 auto; padding: 18px 20px 20px; width: 400px; color: #222; }
-    h1 { font-size: 16px; margin: 0 0 14px; }
-    section { margin: 0 0 18px; padding: 0 0 16px; border-bottom: 1px solid #e3e3e3; }
-    section:last-of-type { border-bottom: 0; }
-    h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px; color: #666; }
+    body { font: 14px/1.45 system-ui, sans-serif; margin: 0 auto; padding: 16px 20px 14px; max-width: 560px; color: #222;
+           min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; }
+    header { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; margin: 0 0 12px; }
+    h1 { font-size: 16px; margin: 0; }
+    section { margin: 0 0 12px; padding: 0 0 10px; border-bottom: 1px solid #e3e3e3; }
+    .col > section:last-child { border-bottom: 0; }
+    /* Two fixed columns in the settings window. Each section stays in its
+       column, so opening OMDb or Advanced only pushes down what is below it
+       in the same column instead of reflowing the whole page. */
+    @media (min-width: 760px) {
+      body { max-width: 860px; }
+      .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; align-items: start; }
+    }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
+    .choices label.check { margin: 4px 0; }
+    .choices.three { grid-template-columns: repeat(3, auto); justify-content: start; }
+    h2 { display: flex; align-items: center; font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px; color: #666; }
     p { margin: 6px 0; }
     .muted { color: #666; font-size: 13px; }
     .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
     button { padding: 6px 14px; font: inherit; }
     input[type=text] { flex: 1; min-width: 0; padding: 6px 8px; font: inherit; border: 1px solid #aaa; border-radius: 4px; }
-    label.check { display: flex; gap: 7px; align-items: center; margin: 8px 0; }
+    label.check { display: flex; gap: 7px; align-items: center; margin: 6px 0; }
     progress { width: 100%; height: 12px; margin-top: 4px; display: block; }
     #buildText { color: #555; font-size: 13px; margin-top: 4px; }
     .note { flex: 1; min-width: 180px; padding: 6px 10px; border-radius: 4px; background: #fff4d6; border: 1px solid #e8c56a; color: #5a4300; font-weight: 600; font-size: 13px; }
     .done { display: flex; gap: 10px; align-items: center; margin: 8px 0; padding: 8px 10px; border-radius: 4px; background: #e6f6ec; border: 1px solid #8fd1a8; color: #1d5e36; font-size: 13px; }
     .done[hidden] { display: none; }
-    .sample { display: inline-flex; gap: 4px; align-items: center; padding: 1px 6px; border-radius: 4px; background: #222; color: #f5c518; font-weight: 700; font-size: 12px; }
-    .sample-imdb { font-size: 9px; font-weight: 800; color: #000; background: #f5c518; border-radius: 2px; padding: 0 3px; line-height: 1.5; }
-    .credit { margin-top: 18px; color: #888; font-size: 12px; }
     .done > div { flex: 1; }
     .done button { padding: 5px 12px; white-space: nowrap; }
-    #omdbBox { margin: 6px 0 0 23px; }
-    #testResult, #status { font-weight: 600; min-height: 1.4em; margin: 4px 0 0; word-break: break-word; }
+    .sample { display: inline-flex; gap: 4px; align-items: center; padding: 1px 6px; border-radius: 4px; background: #222; color: #f5c518; font-weight: 700; font-size: 12px; }
+    .sample-imdb { font-size: 9px; font-weight: 800; color: #000; background: #f5c518; border-radius: 2px; padding: 0 3px; line-height: 1.5; }
+    .credit { margin: auto 0 0; padding-top: 10px; color: #888; font-size: 12px; }   /* pinned to the bottom */
+    #omdbBox { margin: 2px 0 0 23px; }
+    #testResult { font-weight: 600; min-height: 1.4em; margin: 2px 0 0; word-break: break-word; }
+    #status { flex: 1; min-width: 200px; font-weight: 600; font-size: 13px; text-align: right; }
     .ok { color: #2a7; }
     .bad { color: #c33; }
     details summary { cursor: pointer; color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; }
-    details ul { margin: 8px 0; padding-left: 18px; }
     a { color: #06c; }
+
+    /* Explanations live behind a small "i": shown on hover, or on keyboard
+       focus, as a popover that floats over the page and moves nothing. */
+    .tip { position: relative; display: inline-flex; align-items: center; justify-content: center;
+           width: 16px; height: 16px; margin-left: 6px; border-radius: 50%; background: #e3e3e3; color: #555;
+           font: italic 700 11px/1 Georgia, serif; text-transform: none; letter-spacing: 0; cursor: help; flex: none; }
+    .tip:hover, .tip:focus { background: #555; color: #fff; outline: none; }
+    .tip::after { content: attr(data-tip); position: absolute; z-index: 10; top: calc(100% + 6px); left: -8px; width: 280px;
+                  padding: 8px 10px; border-radius: 6px; background: #333; color: #fff;
+                  font: 400 12px/1.45 system-ui, sans-serif; text-align: left; white-space: normal;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); visibility: hidden; opacity: 0; transition: opacity 0.12s; }
+    .tip:hover::after, .tip:focus::after { visibility: visible; opacity: 1; }
+    .tip.left::after { left: auto; right: -8px; }   /* right column: open toward the middle */
+    .tip.up::after { top: auto; bottom: calc(100% + 6px); }   /* near the bottom: open upward */
   </style>
 </head>
 <body>
-  <h1>Show IMDb Ratings on Streaming Services</h1>
+  <header>
+    <h1>Show IMDb Ratings on Streaming Services</h1>
+    <div id="status" class="ok"></div>
+  </header>
 
-  <section>
-    <h2>Ratings database</h2>
-    <p id="localStatus">…</p>
-    <div class="row"><button id="build" type="button">Update now</button><span id="buildNote" class="note" hidden></span></div>
-    <div id="buildProgress" hidden>
-      <progress id="buildBar" max="1" value="0"></progress>
-      <div id="buildText"></div>
+  <div class="cols">
+    <div class="col">
+      <section>
+        <h2>Ratings database
+          <span class="tip" tabindex="0" data-tip="Built in your browser from IMDb's public data; the first build takes a few minutes. Lookups then happen on your computer, with no requests to anyone. On a metered connection, untick the weekly refresh and use Update now when convenient."
+                aria-label="Built in your browser from IMDb's public data; the first build takes a few minutes. Lookups then happen on your computer, with no requests to anyone. On a metered connection, untick the weekly refresh and use Update now when convenient.">i</span></h2>
+        <p id="localStatus">…</p>
+        <div class="row"><button id="build" type="button">Update now</button><span id="buildNote" class="note" hidden></span></div>
+        <div id="buildProgress" hidden>
+          <progress id="buildBar" max="1" value="0"></progress>
+          <div id="buildText"></div>
+        </div>
+        <div id="buildDone" class="done" hidden>
+          <div><b>All set.</b> <span id="doneText"></span></div>
+          <button id="closeTab" type="button" hidden>Close</button>
+        </div>
+        <label class="check"><input id="auto" type="checkbox"> Refresh automatically every week (about 240 MB from IMDb each time)</label>
+      </section>
+
+      <section>
+        <h2>OMDb lookups
+          <span class="tip" tabindex="0" data-tip="Covers brand-new releases and titles with few votes that the database doesn't have. OMDb is a separate service that mirrors IMDb's ratings (IMDb itself doesn't issue keys). A free key allows 1,000 lookups a day: sign up, click the activation link in their email, and paste the key here. Only titles the database lacks are sent to OMDb."
+                aria-label="Covers brand-new releases and titles with few votes that the database doesn't have. OMDb is a separate service that mirrors IMDb's ratings (IMDb itself doesn't issue keys). A free key allows 1,000 lookups a day: sign up, click the activation link in their email, and paste the key here. Only titles the database lacks are sent to OMDb.">i</span></h2>
+        <label class="check"><input id="useOmdb" type="checkbox"> Also look up titles the database doesn't have</label>
+        <div id="omdbBox" hidden>
+          <div class="row"><input id="key" type="text" autocomplete="off" spellcheck="false" placeholder="OMDb API key">
+            <button id="save">Save</button><button id="test" type="button">Test</button></div>
+          <div id="testResult"></div>
+          <p class="muted">Free key: <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com</a>
+             · Requests today: <span id="today">…</span> / 1,000 <span id="limit"></span></p>
+        </div>
+      </section>
     </div>
-    <div id="buildDone" class="done" hidden>
-      <div><b>All set.</b> <span id="doneText"></span></div>
-      <button id="closeTab" type="button" hidden>Close this tab</button>
+
+    <div class="col">
+      <section>
+        <h2>Sites
+          <span class="tip left" tabindex="0" data-tip="Untick a service you don't use and the extension stays idle there. Prime Video covers primevideo.com and amazon.com/gp/video. Changes apply to open tabs right away."
+                aria-label="Untick a service you don't use and the extension stays idle there. Prime Video covers primevideo.com and amazon.com/gp/video. Changes apply to open tabs right away.">i</span></h2>
+        <div class="choices">
+          <label class="check"><input class="site" data-site="netflix" type="checkbox"> Netflix</label>
+          <label class="check"><input class="site" data-site="primevideo" type="checkbox"> Prime Video</label>
+          <label class="check"><input class="site" data-site="hulu" type="checkbox"> Hulu</label>
+          <label class="check"><input class="site" data-site="hbomax" type="checkbox"> HBO Max</label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Badges on title cards
+          <span class="tip left" tabindex="0" data-tip="Only on hover: a card's badge appears while the mouse is over it. Off: no badges on cards at all. Previews, banners and title pages always show the rating. Changes apply to open tabs right away."
+                aria-label="Only on hover: a card's badge appears while the mouse is over it. Off: no badges on cards at all. Previews, banners and title pages always show the rating. Changes apply to open tabs right away.">i</span></h2>
+        <div class="choices three">
+          <label class="check"><input type="radio" name="cardBadges" value="always"> Always</label>
+          <label class="check"><input type="radio" name="cardBadges" value="hover"> Only on hover</label>
+          <label class="check"><input type="radio" name="cardBadges" value="off"> Off</label>
+        </div>
+        <label class="check"><input id="hideNA" type="checkbox"> Hide “n/a” on cards with no IMDb match</label>
+        <div class="row">Label before the rating:
+          <label class="check"><input type="radio" name="badgeLabel" value="star"> <span class="sample">★ 7.8</span></label>
+          <label class="check"><input type="radio" name="badgeLabel" value="imdb"> <span class="sample"><span class="sample-imdb">IMDb</span> 7.8</span></label>
+        </div>
+      </section>
+
+      <section>
+        <details>
+          <summary>Advanced</summary>
+          <div class="row">Ratings remembered: <span id="stored">…</span>
+            <span class="tip left up" tabindex="0" data-tip="Each title's rating is remembered once it has been looked up, so it shows instantly next time; it is re-checked after 30 days (3 days for titles with no match). Clear forgets them all, so titles look themselves up again, which fixes a wrong match."
+                  aria-label="Each title's rating is remembered once it has been looked up, so it shows instantly next time; it is re-checked after 30 days (3 days for titles with no match). Clear forgets them all, so titles look themselves up again, which fixes a wrong match.">i</span></div>
+          <div class="row">
+            <button id="clear" type="button">Clear remembered ratings</button>
+            <button id="deleteDb" type="button">Delete database</button>
+            <span class="tip left up" tabindex="0" data-tip="Removes the local ratings database and the ratings remembered from it, as if just installed. Useful with OMDb only, or to start over. Nothing downloads again until you click Update now."
+                  aria-label="Removes the local ratings database and the ratings remembered from it, as if just installed. Useful with OMDb only, or to start over. Nothing downloads again until you click Update now.">i</span></div>
+        </details>
+      </section>
     </div>
-    <label class="check"><input id="auto" type="checkbox"> Refresh automatically every week (downloads about 240 MB from IMDb each time)</label>
-    <p class="muted">Built in your browser from IMDb's public data; the first build is a few
-       minutes. Lookups then happen locally with no requests to anyone. On a metered
-       connection, untick the weekly refresh and use Update now when convenient.</p>
-  </section>
-
-  <section>
-    <h2>Sites</h2>
-    <label class="check"><input class="site" data-site="netflix" type="checkbox"> Netflix</label>
-    <label class="check"><input class="site" data-site="primevideo" type="checkbox"> Prime Video (primevideo.com and amazon.com/gp/video)</label>
-    <label class="check"><input class="site" data-site="hulu" type="checkbox"> Hulu</label>
-    <label class="check"><input class="site" data-site="hbomax" type="checkbox"> HBO Max</label>
-    <p class="muted">Untick a service you don't use and the extension stays idle there. Changes apply to open tabs right away.</p>
-  </section>
-
-  <section>
-    <h2>Badges on title cards</h2>
-    <label class="check"><input type="radio" name="cardBadges" value="always"> Always</label>
-    <label class="check"><input type="radio" name="cardBadges" value="hover"> Only when the mouse is over the card</label>
-    <label class="check"><input type="radio" name="cardBadges" value="off"> Off</label>
-    <label class="check"><input id="hideNA" type="checkbox"> Hide “n/a” on cards with no IMDb match</label>
-    <div class="row">Label before the rating:
-      <label class="check"><input type="radio" name="badgeLabel" value="star"> <span class="sample">★ 7.8</span></label>
-      <label class="check"><input type="radio" name="badgeLabel" value="imdb"> <span class="sample"><span class="sample-imdb">IMDb</span> 7.8</span></label>
-    </div>
-    <p class="muted">Previews, banners and title pages always show the rating. Changes apply to open tabs right away.</p>
-  </section>
-
-  <section>
-    <label class="check"><input id="useOmdb" type="checkbox"> Also look up titles the database doesn't have, using OMDb</label>
-    <div id="omdbBox" hidden>
-      <div class="row"><input id="key" type="text" autocomplete="off" spellcheck="false" placeholder="OMDb API key">
-        <button id="save">Save</button><button id="test" type="button">Test</button></div>
-      <div id="testResult"></div>
-      <p class="muted">Covers brand-new releases and titles with few votes. Get a free key at
-         <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com</a>
-         (1,000 lookups a day), click the activation link in their email, and paste it here.
-         OMDb is a separate service that mirrors IMDb's ratings; IMDb itself doesn't issue keys.</p>
-    </div>
-  </section>
-
-  <section>
-    <details>
-      <summary>Advanced</summary>
-      <ul>
-        <li>Answers stored: <span id="stored">…</span></li>
-        <li>OMDb requests today: <span id="today">…</span> / 1,000 <span id="limit"></span></li>
-      </ul>
-      <p class="muted">Every answer is kept and re-checked after 30 days (3 days for misses).</p>
-      <div class="row">
-        <button id="export" type="button">Export</button>
-        <button id="import" type="button">Import</button>
-        <button id="clear" type="button">Clear stored answers</button>
-        <input id="file" type="file" accept="application/json,.json" hidden>
-      </div>
-    </details>
-  </section>
-
-  <div id="status" class="ok"></div>
+  </div>
 
   <!-- Attribution IMDb requires for non-commercial use of its datasets. -->
   <p class="credit">Information courtesy of IMDb
