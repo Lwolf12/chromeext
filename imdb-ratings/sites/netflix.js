@@ -343,14 +343,19 @@ window.IMDBEXT_SITE = {
         const modal = el.closest('.previewModal--wrapper');
         return modal ? modalTitle(modal) : null;
       },
-      // "Season 2" -> 2. No dropdown (one season) or "Limited Series" -> 1.
-      // Anything else ("Part 2", "Volume 1") doesn't map onto IMDb's
-      // seasons reliably, so those lists get no ratings.
+      // "Season 2" -> 2. Some shows name seasons after themselves
+      // ("Stranger Things 5" -> 5). No dropdown (one season) or "Limited
+      // Series" -> 1. Anything else ("Part 2", "Volume 1") doesn't map onto
+      // IMDb's seasons reliably, so those lists get no ratings.
       seasonOf(el) {
         const toggle = el.querySelector('[data-uia="dropdown-toggle"]');
-        const text = (toggle ? toggle.textContent : el.querySelector('.episodeSelector-header')?.textContent) || '';
+        const text = ((toggle ? toggle.textContent : el.querySelector('.episodeSelector-header')?.textContent) || '').trim();
         const m = text.match(/season\s*(\d+)/i);
         if (m) return Number(m[1]);
+        const named = text.match(/^(.*\S)\s+(\d+)$/);
+        const show = named && this.showOf(el);
+        const key = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+        if (named && show && key(named[1]) === key(show)) return Number(named[2]);
         if (!toggle || /limited series|miniseries/i.test(text)) return 1;
         return null;
       },
