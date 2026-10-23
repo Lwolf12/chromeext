@@ -23,12 +23,29 @@ function ago(ts) {
 
 // ------------------------------------------------------------ database
 
+// The green "All set" box is for a build that just finished; the session
+// keeps the done state until the browser restarts, and an hours-old one is
+// already covered by the "built today" line above.
+const DONE_RECENT_MS = 10 * 60 * 1000;
+
 function showBuild(build) {
   const box = $('buildProgress');
   const btn = $('build');
+  $('buildDone').hidden = true;
   if (!build || build.status === 'idle') {
     box.hidden = true;
     btn.disabled = false;
+    return;
+  }
+  if (build.status === 'done') {
+    box.hidden = true;
+    btn.disabled = false;
+    if (Date.now() - (build.at || 0) < DONE_RECENT_MS) {
+      $('doneText').textContent =
+        build.info.titles.toLocaleString() + ' titles. Ratings now show on the streaming sites ' +
+        '(reload any that are already open).';
+      $('buildDone').hidden = false;
+    }
     return;
   }
   if (build.status === 'running') {
@@ -41,13 +58,18 @@ function showBuild(build) {
   }
   box.hidden = false;
   btn.disabled = false;
-  $('buildBar').value = build.status === 'done' ? 1 : 0;
-  $('buildText').textContent =
-    build.status === 'done'
-      ? 'Done: ' + build.info.titles.toLocaleString() + ' titles. You’re all set and can close this page; ' +
-        'ratings now show on the streaming sites (reload any that are already open).'
-      : 'Failed: ' + build.message + ' (will retry automatically in a day)';
+  $('buildBar').value = 0;
+  $('buildText').textContent = 'Failed: ' + build.message + ' (will retry automatically in a day)';
 }
+
+// Opened as a tab (after installing, or from the notice on a streaming
+// site), the panel offers to close itself. Inside Chrome's options dialog
+// there is no tab, so the button stays hidden.
+chrome.tabs.getCurrent((tab) => {
+  if (!tab) return;
+  $('closeTab').hidden = false;
+  $('closeTab').addEventListener('click', () => chrome.tabs.remove(tab.id));
+});
 
 async function refreshStats() {
   let u;

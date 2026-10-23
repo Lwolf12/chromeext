@@ -18,6 +18,10 @@
     progress { width: 100%; height: 12px; margin-top: 4px; display: block; }
     #buildText { color: #555; font-size: 13px; margin-top: 4px; }
     .note { flex: 1; min-width: 180px; padding: 6px 10px; border-radius: 4px; background: #fff4d6; border: 1px solid #e8c56a; color: #5a4300; font-weight: 600; font-size: 13px; }
+    .done { display: flex; gap: 10px; align-items: center; margin: 8px 0; padding: 8px 10px; border-radius: 4px; background: #e6f6ec; border: 1px solid #8fd1a8; color: #1d5e36; font-size: 13px; }
+    .done[hidden] { display: none; }
+    .done > div { flex: 1; }
+    .done button { padding: 5px 12px; white-space: nowrap; }
     #omdbBox { margin: 6px 0 0 23px; }
     #testResult, #status { font-weight: 600; min-height: 1.4em; margin: 4px 0 0; word-break: break-word; }
     .ok { color: #2a7; }
@@ -37,6 +41,10 @@
     <div id="buildProgress" hidden>
       <progress id="buildBar" max="1" value="0"></progress>
       <div id="buildText"></div>
+    </div>
+    <div id="buildDone" class="done" hidden>
+      <div><b>All set.</b> <span id="doneText"></span></div>
+      <button id="closeTab" type="button" hidden>Close this tab</button>
     </div>
     <label class="check"><input id="auto" type="checkbox"> Refresh automatically every week (downloads about 240 MB from IMDb each time)</label>
     <p class="muted">Built in your browser from IMDb's public data; the first build is a few
