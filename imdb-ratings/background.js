@@ -207,10 +207,21 @@ async function startBuild(trigger) {
   return next;
 }
 
-async function onBuildMessage(msg) {
+// Messages from the build are handled one at a time, in arrival order. A
+// progress update reads the state and writes it back; run concurrently, the
+// last "100%" could land after "done" and leave the state stuck on running
+// (Update now greyed out, no done message) until the browser restarts.
+let buildMessages = Promise.resolve();
+
+function onBuildMessage(msg) {
+  buildMessages = buildMessages.then(() => handleBuildMessage(msg)).catch(() => {});
+}
+
+async function handleBuildMessage(msg) {
   if (msg.type === 'progress') {
     const state = await getBuildState();
-    await setBuildState({ ...state, status: 'running', phase: msg.phase, pct: msg.pct, detail: msg.detail });
+    if (state.status !== 'running') return; // a late update after done/error
+    await setBuildState({ ...state, phase: msg.phase, pct: msg.pct, detail: msg.detail });
   } else if (msg.type === 'done') {
     await setBuildState({ status: 'done', at: Date.now(), info: msg.info });
     await closeOffscreen();
