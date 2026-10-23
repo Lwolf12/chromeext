@@ -19,7 +19,21 @@ a[data-uia="progress-card"] {
   pointer-events: auto;
 }
 
+/* Label before the score: a star by default (compact, and not mistakable
+   for IMDb's logo); the settings can switch it to the yellow "IMDb" tag,
+   which the content script signals with a class on <html>. */
 .imdbext-badge::before {
+  content: "\2605";
+  font-size: 12px;
+  line-height: 1;
+  color: #f5c518;
+}
+
+.imdbext-badge--none::before {
+  color: #888;
+}
+
+html.imdbext-label-imdb .imdbext-badge::before {
   content: "IMDb";
   font-size: 9px;
   font-weight: 800;
@@ -184,14 +198,9 @@ article[data-testid="card"]:not(:has([data-testid="standard-mini-details"])) {
 }
 
 .imdbext-setup::before {
-  content: "IMDb";
-  font-size: 10px;
-  font-weight: 800;
-  color: #000;
-  background: #f5c518;
-  border-radius: 2px;
-  padding: 0 3px;
-  line-height: 1.5;
+  content: "\2605";
+  font-size: 14px;
+  line-height: 1;
 }
 
 .imdbext-setup-close {
@@ -204,4 +213,21 @@ article[data-testid="card"]:not(:has([data-testid="standard-mini-details"])) {
 
 .imdbext-setup-close:hover {
   color: #fff;
+}
+
+/* Settings: card badges only on hover, and "n/a" hidden on cards. The
+   content script sets these classes on <html>. The badge's parent is the
+   card or a full-size part of it, so hovering the card hovers the parent. */
+html.imdbext-cards-hover .imdbext-badge--card {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+html.imdbext-cards-hover :hover > .imdbext-badge--card,
+html.imdbext-cards-hover [data-imdbext-title]:hover .imdbext-badge--card {
+  opacity: 1;
+}
+
+html.imdbext-hide-na .imdbext-badge--card.imdbext-badge--none {
+  display: none;
 }

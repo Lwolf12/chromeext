@@ -20,6 +20,9 @@
     .note { flex: 1; min-width: 180px; padding: 6px 10px; border-radius: 4px; background: #fff4d6; border: 1px solid #e8c56a; color: #5a4300; font-weight: 600; font-size: 13px; }
     .done { display: flex; gap: 10px; align-items: center; margin: 8px 0; padding: 8px 10px; border-radius: 4px; background: #e6f6ec; border: 1px solid #8fd1a8; color: #1d5e36; font-size: 13px; }
     .done[hidden] { display: none; }
+    .sample { display: inline-flex; gap: 4px; align-items: center; padding: 1px 6px; border-radius: 4px; background: #222; color: #f5c518; font-weight: 700; font-size: 12px; }
+    .sample-imdb { font-size: 9px; font-weight: 800; color: #000; background: #f5c518; border-radius: 2px; padding: 0 3px; line-height: 1.5; }
+    .credit { margin-top: 18px; color: #888; font-size: 12px; }
     .done > div { flex: 1; }
     .done button { padding: 5px 12px; white-space: nowrap; }
     #omdbBox { margin: 6px 0 0 23px; }
@@ -62,6 +65,19 @@
   </section>
 
   <section>
+    <h2>Badges on title cards</h2>
+    <label class="check"><input type="radio" name="cardBadges" value="always"> Always</label>
+    <label class="check"><input type="radio" name="cardBadges" value="hover"> Only when the mouse is over the card</label>
+    <label class="check"><input type="radio" name="cardBadges" value="off"> Off</label>
+    <label class="check"><input id="hideNA" type="checkbox"> Hide “n/a” on cards with no IMDb match</label>
+    <div class="row">Label before the rating:
+      <label class="check"><input type="radio" name="badgeLabel" value="star"> <span class="sample">★ 7.8</span></label>
+      <label class="check"><input type="radio" name="badgeLabel" value="imdb"> <span class="sample"><span class="sample-imdb">IMDb</span> 7.8</span></label>
+    </div>
+    <p class="muted">Previews, banners and title pages always show the rating. Changes apply to open tabs right away.</p>
+  </section>
+
+  <section>
     <label class="check"><input id="useOmdb" type="checkbox"> Also look up titles the database doesn't have, using OMDb</label>
     <div id="omdbBox" hidden>
       <div class="row"><input id="key" type="text" autocomplete="off" spellcheck="false" placeholder="OMDb API key">
@@ -92,6 +108,11 @@
   </section>
 
   <div id="status" class="ok"></div>
+
+  <!-- Attribution IMDb requires for non-commercial use of its datasets. -->
+  <p class="credit">Information courtesy of IMDb
+    (<a href="https://www.imdb.com" target="_blank" rel="noopener">https://www.imdb.com</a>).
+    Used with permission.</p>
 
   <script src="options.js"></script>
 </body>

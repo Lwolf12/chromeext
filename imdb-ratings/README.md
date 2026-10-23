@@ -41,6 +41,11 @@ so more services can be added.
 4. Optional: under **Sites** on the same panel, untick any service you
    don't use. The extension then stays idle on that site. Changes apply
    to open tabs at once.
+5. Optional: under **Badges on title cards**, show card badges always,
+   only when the mouse is over a card, or not at all (previews, banners
+   and title pages keep their rating either way); hide the grey "n/a"
+   badges; and pick the label before the score, a star (default) or the
+   yellow IMDb tag. Hovering any badge says it is the IMDb rating.
 
 ## Local database
 
@@ -114,3 +119,9 @@ this one."
 - **Site markup changes.** Selectors rely on each site's stable test
   attributes rather than their hashed class names, but a redesign can still
   break an adapter. Only that site's adapter file needs updating.
+
+## Credits
+
+Information courtesy of IMDb (<https://www.imdb.com>). Used with permission.
+The ratings come from IMDb's non-commercial datasets, which IMDb allows for
+personal and non-commercial use with this attribution.

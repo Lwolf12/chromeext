@@ -163,6 +163,50 @@ for (const box of SITE_BOXES) {
   });
 }
 
+// -------------------------------------------------------------- badges
+
+// How card badges show: cardBadges 'always' | 'hover' | 'off', and hideNA
+// to drop the grey "n/a" ones. Previews, banners and title pages always
+// show the rating. Read by the content script, which applies changes live.
+const MODE_BOXES = [...document.querySelectorAll('input[name=cardBadges]')];
+const MODE_SAID = {
+  always: 'Card badges always show.',
+  hover: 'Card badges show when the mouse is over a card.',
+  off: 'Card badges off; previews, banners and title pages still show ratings.',
+};
+
+// badgeLabel: 'star' (default) or 'imdb', the tag shown before the score.
+const LABEL_BOXES = [...document.querySelectorAll('input[name=badgeLabel]')];
+
+async function loadBadges() {
+  const { cardBadges = 'always', hideNA = false, badgeLabel = 'star' } =
+    await chrome.storage.sync.get(['cardBadges', 'hideNA', 'badgeLabel']);
+  for (const box of MODE_BOXES) box.checked = box.value === cardBadges;
+  $('hideNA').checked = hideNA;
+  for (const box of LABEL_BOXES) box.checked = box.value === badgeLabel;
+}
+
+for (const box of LABEL_BOXES) {
+  box.addEventListener('change', async () => {
+    if (!box.checked) return;
+    await chrome.storage.sync.set({ badgeLabel: box.value });
+    say(box.value === 'imdb' ? 'Badges show the IMDb tag.' : 'Badges show a star.');
+  });
+}
+
+for (const box of MODE_BOXES) {
+  box.addEventListener('change', async () => {
+    if (!box.checked) return;
+    await chrome.storage.sync.set({ cardBadges: box.value });
+    say(MODE_SAID[box.value]);
+  });
+}
+
+$('hideNA').addEventListener('change', async () => {
+  await chrome.storage.sync.set({ hideNA: $('hideNA').checked });
+  say($('hideNA').checked ? '“n/a” badges hidden on cards.' : '“n/a” badges shown on cards.');
+});
+
 // ---------------------------------------------------------------- OMDb
 
 // The checkbox means "OMDb is in use": fallback enabled and a key saved.
@@ -277,5 +321,6 @@ $('clear').addEventListener('click', async () => {
 // ------------------------------------------------------------------ go
 
 loadSites();
+loadBadges();
 loadOmdb();
 refreshStats();

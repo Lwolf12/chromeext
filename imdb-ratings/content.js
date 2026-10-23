@@ -16,9 +16,10 @@
   if (!site || !Array.isArray(site.targets)) return;
 
   const PROCESSED = 'data-imdbext-title';
+  let cardMode = 'always'; // card badges: 'always' | 'hover' | 'off'
   const warned = new Set();
   const MESSAGES = {
-    nokey: 'No OMDb API key set, or the key is invalid/not activated. Click the extension icon to add one.',
+    nokey: 'No ratings database yet and no working OMDb key; build the database from the settings (Update now).',
     limit: 'OMDb daily request limit reached. Stored ratings still show; new lookups resume later.',
     http: 'Could not reach OMDb (network error or unexpected response).',
   };
@@ -26,7 +27,11 @@
   function warnOnce(kind, detail) {
     if (warned.has(kind)) return;
     warned.add(kind);
-    console.warn('[imdbext] ' + (MESSAGES[kind] || 'Lookup failed: ' + kind), detail || '');
+    // console.info, not warn: Chrome lists a content script's warnings under
+    // the extension's Errors button, and these are expected states (no key
+    // yet, OMDb limit, extension just reloaded), not bugs. The page's setup
+    // notice is what tells users; this is for anyone debugging.
+    console.info('[imdbext] ' + (MESSAGES[kind] || 'Lookup failed: ' + kind), detail || '');
   }
 
   const io = new IntersectionObserver(
@@ -50,6 +55,7 @@
 
   function scan(root) {
     for (const target of site.targets) {
+      if (target.kind === 'card' && cardMode === 'off') continue; // no lookups either
       for (const el of root.querySelectorAll(target.selector)) {
         const title = titlesOf(target, el)[0];
         if (!title) continue;
@@ -179,7 +185,9 @@
     badge.classList.remove('imdbext-badge--none');
     score.textContent = result.rating.toFixed(1);
     const parts = [result.matchedTitle, result.year, result.votes && result.votes + ' votes'].filter(Boolean);
-    badge.title = parts.join(' · ');
+    // Says where the number comes from, which the default star label doesn't.
+    badge.title = 'IMDb rating ' + result.rating.toFixed(1) + ' · ' + parts.join(' · ') +
+      (result.imdbID ? '\nClick to open the IMDb page' : '');
     if (result.imdbID) badge.dataset.imdbId = result.imdbID;
     else delete badge.dataset.imdbId;
 
@@ -233,7 +241,7 @@
     }
     // Only touch the DOM on a real change: every mutation makes scan() look
     // up the badge-less cards again.
-    const text = s.building ? 'Building the ratings database…' : 'Click to set up ratings';
+    const text = s.building ? 'Building the IMDb ratings database…' : 'Click to set up IMDb ratings';
     const span = notice.querySelector('.imdbext-setup-text');
     if (span.textContent !== text) span.textContent = text;
     clearTimeout(pollTimer);
@@ -316,11 +324,37 @@
   // a site missing from it is on. One read on a disabled site, then nothing.
   const enabled = (sites) => !sites || sites[site.name] !== false;
 
-  chrome.storage.sync.get('sites').then(({ sites }) => {
-    if (enabled(sites)) start();
+  // Badge settings: cardBadges 'always' | 'hover' | 'off', hideNA drops the
+  // grey "n/a" card badges, badgeLabel 'star' (default) | 'imdb' picks the
+  // tag before the score. Hover, n/a and the label are pure CSS (classes on
+  // <html>, see badge.css); 'off' also stops card lookups, so it rescans.
+  const PREF_KEYS = ['cardBadges', 'hideNA', 'badgeLabel'];
+
+  function applyBadgePrefs({ cardBadges, hideNA, badgeLabel }) {
+    cardMode = cardBadges === 'hover' || cardBadges === 'off' ? cardBadges : 'always';
+    const cl = document.documentElement.classList;
+    cl.toggle('imdbext-cards-hover', cardMode === 'hover');
+    cl.toggle('imdbext-hide-na', !!hideNA);
+    cl.toggle('imdbext-label-imdb', badgeLabel === 'imdb');
+  }
+
+  chrome.storage.sync.get(['sites', ...PREF_KEYS]).then((prefs) => {
+    applyBadgePrefs(prefs);
+    if (enabled(prefs.sites)) start();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'sync' || !changes.sites) return;
+    if (area !== 'sync') return;
+    if (PREF_KEYS.some((k) => changes[k])) {
+      const wasOff = cardMode === 'off';
+      chrome.storage.sync.get(PREF_KEYS).then((prefs) => {
+        applyBadgePrefs(prefs);
+        if (mo && wasOff !== (cardMode === 'off')) {
+          stop();
+          start();
+        }
+      });
+    }
+    if (!changes.sites) return;
     if (enabled(changes.sites.newValue)) start();
     else stop();
   });
