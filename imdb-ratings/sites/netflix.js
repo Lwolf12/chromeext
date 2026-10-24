@@ -347,25 +347,31 @@ window.IMDBEXT_SITE = {
         return modal ? modalTitle(modal) : null;
       },
       // "Season 2" -> 2. Some shows name seasons after themselves
-      // ("Stranger Things 5" -> 5). No dropdown (one season) or "Limited
-      // Series" -> 1. Anything else ("Part 2", "Volume 1") doesn't map onto
-      // IMDb's seasons reliably, so those lists get no ratings.
+      // ("Stranger Things 5" -> 5, and plain "Stranger Things" for the
+      // first). No dropdown (one season) or "Limited Series" -> 1. Anything
+      // else ("Part 2", "Volume 1") doesn't map onto IMDb's seasons
+      // reliably, so those lists get no ratings.
       seasonOf(el) {
         const toggle = el.querySelector('[data-uia="dropdown-toggle"]');
         const text = ((toggle ? toggle.textContent : el.querySelector('.episodeSelector-header')?.textContent) || '').trim();
         const m = text.match(/season\s*(\d+)/i);
         if (m) return Number(m[1]);
         const named = text.match(/^(.*\S)\s+(\d+)$/);
-        const show = named && this.showOf(el);
+        const show = this.showOf(el);
         const key = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
         if (named && show && key(named[1]) === key(show)) return Number(named[2]);
+        if (show && key(text) === key(show)) return 1;
         if (!toggle || /limited series|miniseries/i.test(text)) return 1;
         return null;
       },
+      // Anthologies (Black Mirror) list their episodes without the number;
+      // when no row has one, the list's order gives it (1, 2, 3, ...).
       items(el) {
-        return [...el.querySelectorAll('.episode-item')]
-          .map((item) => ({
-            number: Number((item.querySelector('.titleCard-title_index')?.textContent || '').trim()),
+        const rows = [...el.querySelectorAll('.episode-item')];
+        const numbered = rows.some((item) => item.querySelector('.titleCard-title_index'));
+        return rows
+          .map((item, i) => ({
+            number: numbered ? Number((item.querySelector('.titleCard-title_index')?.textContent || '').trim()) : i + 1,
             row: item.querySelector('.titleCardList-title'),
           }))
           .filter((i) => Number.isInteger(i.number) && i.number > 0 && i.row);
