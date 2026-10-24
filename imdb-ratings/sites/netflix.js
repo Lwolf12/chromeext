@@ -324,11 +324,14 @@ window.IMDBEXT_SITE = {
           el.querySelector('.previewModal--info')
         );
       },
-      // Own line directly under the play / add / rate buttons.
+      // Own line directly under the play / add / rate buttons. In the full
+      // detail modal, .previewModal--info has no padding of its own: its
+      // content sits in .detail-modal-container (48px sides), so the line
+      // goes in there to line up with Netflix's text instead of the edge.
       place(host, badge) {
         const controls = host.querySelector('[data-uia$="-controls"]');
         if (controls && controls.parentElement === host) controls.after(badge);
-        else host.prepend(badge);
+        else (host.querySelector(':scope > .detail-modal-container') || host).prepend(badge);
       },
     },
     {
