@@ -21,7 +21,18 @@ const RatingsDB = (() => {
   const VERSION = 2; // 2 added the episode stores
   let conn = null;
 
+  // What the stored keys were built with. A database of an older format is
+  // rebuilt once after an update (background.js maybeRefresh).
+  //   1  movies, TV films and series; plain normalise
+  //   2  also direct-to-video, TV specials, TV shorts and shorts (builder.js
+  //      TYPE), and abbreviations joined in normalise
+  const FORMAT = 2;
+
   // Used for both building and lookup. Keep in one place.
+  // Dotted or starred abbreviations come out as single letters ("Car S.O.S."
+  // -> "car s o s"); two or more single letters in a row are joined, so
+  // "Car SOS" and "Car S.O.S." (or "SWAT" and "S.W.A.T.", "MASH" and
+  // "M*A*S*H") give the same key. A lone letter stays ("i robot").
   function normalise(title) {
     return (title || '')
       .normalize('NFKD')
@@ -29,7 +40,8 @@ const RatingsDB = (() => {
       .toLowerCase()
       .replace(/&/g, ' and ')
       .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
+      .trim()
+      .replace(/\b[a-z](?: [a-z]\b)+/g, (run) => run.replace(/ /g, ''));
   }
 
   function open() {
@@ -71,7 +83,15 @@ const RatingsDB = (() => {
   async function status() {
     const m = await getMeta();
     return m
-      ? { present: true, built: m.built, builtAt: m.builtAt, minVotes: m.minVotes, titles: m.titles, episodes: m.episodes }
+      ? {
+          present: true,
+          built: m.built,
+          builtAt: m.builtAt,
+          minVotes: m.minVotes,
+          titles: m.titles,
+          episodes: m.episodes,
+          outdated: (m.format || 1) < FORMAT,
+        }
       : { present: false };
   }
 
@@ -178,5 +198,5 @@ const RatingsDB = (() => {
     await complete(tx);
   }
 
-  return { normalise, open, getMeta, status, lookup, lookupEpisodes, writeIndex, clear };
+  return { FORMAT, normalise, open, getMeta, status, lookup, lookupEpisodes, writeIndex, clear };
 })();

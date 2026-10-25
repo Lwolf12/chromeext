@@ -10,14 +10,14 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 
 **Summary** (132 characters max):
 
-> Shows the IMDb user rating on every title card while you browse Netflix, Prime Video, Hulu and HBO Max.
+> Shows IMDb ratings on title cards on Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ and Tubi.
 
 **Category:** Entertainment · **Language:** English
 
 **Description:**
 
 > See IMDb ratings without leaving the streaming site. While you browse
-> Netflix, Prime Video, Hulu or HBO Max, every title card gets a small
+> Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ or Tubi, every title card gets a small
 > rating badge. Hovering a title adds the year and vote count to the site's
 > own preview, with a link to the title's page. Banners and title pages get
 > a rating chip too. A show's episode list also gets a rating next to every
@@ -32,14 +32,15 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 > device, without sending the titles you browse to anyone. Nothing downloads until you click
 > Update now in the settings, which open in a small window right after installing.
 > Later, the star icon in Chrome's puzzle-piece menu opens them (pin it to
-> keep it in the toolbar). Only use some of the services? Untick the others
-> in the settings and the extension stays idle there.
+> keep it in the toolbar). Every service is on from the start; any of them
+> can be switched off in the settings if you'd rather not see ratings there.
 >
 > OPTIONAL: NEW RELEASES
 > Brand-new titles are not in the public data yet. To cover those, get a
 > free API key from omdbapi.com (1,000 lookups a day) and paste it into the
 > settings. Only then are title names sent to that service, and only for
-> titles the local database does not have.
+> titles the local database does not have. With a key, previews and title
+> pages can also show Rotten Tomatoes and Metacritic scores and awards.
 >
 > PRIVACY
 > No accounts, no analytics, no server. The extension reads only the title
@@ -84,19 +85,19 @@ featuring): skip for the first submission.
 **Single purpose description:**
 
 > Overlays the IMDb user rating on title cards, banners and preview panels
-> while the user browses Netflix, Prime Video, Hulu and HBO Max.
+> while the user browses Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ and Tubi.
 
 **Permission justifications:**
 
 | Permission | Justification |
 | --- | --- |
 | `storage` | Keeps the user's settings (weekly refresh on/off, OMDb fallback on/off, optional OMDb API key) and the ratings already looked up, so each title is fetched once. |
-| `unlimitedStorage` | The ratings database built from IMDb's data (about 365,000 titles) is stored in IndexedDB and exceeds the default extension quota. |
+| `unlimitedStorage` | The ratings database built from IMDb's data (about 420,000 titles) is stored in IndexedDB and exceeds the default extension quota. |
 | `alarms` | A periodic alarm checks whether the local database is over a week old and, if the user left automatic refresh on, rebuilds it. |
 | `offscreen` | Building the database (downloading and parsing IMDb's dumps) takes minutes and runs in a Web Worker, which the service worker cannot host; an offscreen document hosts the worker. |
 | Host permission `https://datasets.imdbws.com/` | Downloads IMDb's public ratings data dumps to build the local database. |
 | Host permission `https://www.omdbapi.com/` | Optional fallback lookups for titles not in the local database, only when the user has entered an OMDb API key. |
-| Content scripts on `www.netflix.com`, `www.primevideo.com`, `www.amazon.com/gp/video/`, `www.hulu.com`, `play.hbomax.com` | Reads the title names shown on each site's title cards, banners and previews and draws the rating badge next to them. In the US Prime Video is served from amazon.com under /gp/video/, so only that path is matched; the rest of amazon.com is never touched. Each service can be switched off on the settings panel, after which the script does nothing on that site beyond one settings read. |
+| Content scripts on `www.netflix.com`, `www.primevideo.com`, `www.amazon.com/gp/video/`, `www.hulu.com`, `play.hbomax.com`, `tv.apple.com`, `www.disneyplus.com`, `www.paramountplus.com`, `tubitv.com` | Reads the title names shown on each site's title cards, banners and previews and draws the rating badge next to them. In the US Prime Video is served from amazon.com under /gp/video/, so only that path is matched; the rest of amazon.com is never touched. Each service can be switched off on the settings panel, after which the script does nothing on that site beyond one settings read. |
 
 **Are you using remote code?** No. All code is in the package; `importScripts` loads only packaged files.
 
@@ -106,8 +107,9 @@ featuring): skip for the first submission.
   synced extension storage and sent to omdbapi.com with each fallback
   request. (Only if the user enters one.)
 - Tick **Website content**: the title names read from the streaming site are
-  sent to omdbapi.com for fallback lookups. (Only if the user enables the
-  fallback.)
+  sent to omdbapi.com for fallback lookups, and the IMDb IDs of titles the
+  user looks at for the optional extra scores. (Only if the user enables
+  OMDb.)
 - Leave everything else unticked: no personal info, health, financial,
   communications, location, web history or user activity is collected.
 - Tick all three certifications: not sold to third parties; not used for
@@ -123,6 +125,12 @@ https://github.com/Lwolf12/chromeext/blob/main/imdb-ratings/PRIVACY.md
 Visibility **Public**, all regions, free.
 
 ## Things the reviewer may raise
+
+- **New sites in 1.0.0.** Apple TV, Disney+, Paramount+ and Tubi were
+  added as ordinary content-script sites, so the install warning now lists them
+  too, and existing users are asked once to accept them. The extension
+  does the same thing there as on the first four: reads the title names on
+  cards and pages and draws the rating badge.
 
 - **Trademark in the name.** "IMDb" is a registered trademark. The name
   uses it descriptively ("Show IMDb Ratings on …") rather than as a brand,

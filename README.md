@@ -6,7 +6,7 @@ Web Store; the others you load straight from this repository.
 | Extension | What it does |
 | --- | --- |
 | [youtube-old-layout](youtube-old-layout/) | Brings back the classic YouTube watch page: recommended videos on the right, comments under the video. |
-| [imdb-ratings](imdb-ratings/) | Overlays the IMDb user rating on title cards while browsing Netflix, Prime Video, Hulu and HBO Max. [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/biopmnlghmgjoloionocinndfopncelh). |
+| [imdb-ratings](imdb-ratings/) | Overlays the IMDb user rating on title cards while browsing Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ and Tubi, with episode ratings in each show's episode list. [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/biopmnlghmgjoloionocinndfopncelh). |
 
 ## Installing from this repository
 

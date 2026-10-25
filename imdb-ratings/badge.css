@@ -254,3 +254,140 @@ html.imdbext-hide-na .imdbext-badge--card.imdbext-badge--none {
   font-size: 12px;
   vertical-align: middle;
 }
+
+/* Apple TV: banners and title pages put the chip in the metadata line
+   ("TV Show · Thriller · Drama", age rating), a 6px-gap flex row. */
+[data-testid="superhero-metadata"] > .imdbext-badge--detail {
+  margin: 0 0 0 6px;
+  padding: 3px 8px 3px 6px;
+  white-space: nowrap;
+}
+
+/* Apple TV episode tiles: the rating rides on the 18px "EPISODE 3" line,
+   which clips anything taller. */
+[data-testid="lockup"] .tag > .imdbext-badge--episode {
+  margin: 0 0 0 8px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* Disney+: the home banner's chip joins its rating / year / genre line. */
+[data-testid="hero-immersive-set-item"] .imdbext-badge--detail {
+  margin: 0 0 0 10px;
+  padding: 2px 6px 2px 5px;
+  font-size: 12px;
+  align-self: center;
+}
+
+/* Disney+ episode titles wrap; keep the rating next to the text. */
+[data-testid="standard-regular-list-item-title"] .imdbext-badge--episode {
+  margin: 0 0 0 8px;
+}
+
+/* Netflix "More Like This": the running time sits top-right. */
+.titleCard-imageWrapper > .imdbext-badge--card {
+  right: auto;
+  left: 6px;
+}
+
+/* Apple TV Continue Watching tiles carry the Apple TV logo top-right. */
+[data-testid="continue-watching-lockup"] .imdbext-badge--card {
+  right: auto;
+  left: 6px;
+}
+
+/* Tubi: the title page's chip and each episode's rating join a
+   "Crime · 2003 · 16 Seasons" / "1 hr 40 min" metadata row. */
+.web-attributes__meta > .imdbext-badge--detail,
+.web-attributes__meta > .imdbext-badge--episode {
+  margin: 0 8px;
+  padding: 1px 6px 1px 5px;
+  font-size: 12px;
+  align-self: center;
+}
+
+/* Paramount+: the banner and show-page header are CSS grids; the chip gets
+   a full-width row of its own, left-aligned under the title logo. */
+.hero__grid > .imdbext-badge--detail {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin: 4px 0 8px;
+}
+
+/* Optional OMDb scores after a detail chip's IMDb line (settings: Also
+   show). Plain text and emoji, not the sites' own logos: 🍅 or "RT" before
+   the Rotten Tomatoes percentage (following the star / IMDb label setting),
+   a Metacritic number in its traffic-light colors, 🏆 before an awards
+   headline. */
+.imdbext-extras {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.imdbext-rt {
+  color: #ddd;
+}
+
+.imdbext-rt--fresh {
+  color: #ff7a6b;
+}
+
+.imdbext-rt::before {
+  content: "\01F345\00a0";
+}
+
+html.imdbext-label-imdb .imdbext-rt::before {
+  content: "RT\00a0";
+  color: #ddd;
+  font-weight: 800;
+}
+
+.imdbext-mc {
+  padding: 0 4px;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 800;
+}
+
+.imdbext-mc::before {
+  content: "MC\00a0";
+  font-weight: 600;
+}
+
+.imdbext-mc--good {
+  background: #4c9a2a;
+}
+
+.imdbext-mc--mixed {
+  background: #f2c037;
+  color: #222;
+}
+
+.imdbext-mc--bad {
+  background: #d23b3b;
+}
+
+.imdbext-awards {
+  color: #ddd;
+  font-weight: 500;
+}
+
+.imdbext-awards::before {
+  content: "\01F3C6\00a0";
+}
+
+/* "On cards too": the short scores inside a card's corner badge. */
+.imdbext-badge--card .imdbext-extras {
+  gap: 5px;
+  margin-left: 2px;
+  font-size: 11px;
+}
+
+.imdbext-badge--card .imdbext-mc {
+  padding: 0 3px;
+}

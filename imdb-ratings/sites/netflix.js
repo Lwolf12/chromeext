@@ -236,6 +236,33 @@ window.IMDBEXT_SITE = {
       },
     },
     {
+      // "More Like This" in the full detail modal: div[data-uia=
+      // "titleCard--container"] with the title in its aria-label, the image
+      // in .titleCard-imageWrapper (already position: relative) and a
+      // running time ("2h 50m") or a show's length ("3 Seasons") in its
+      // top-right corner, so the badge goes top-left (badge.css). The year
+      // under the image is a film's release year but a show's latest
+      // season, so it is passed only for films.
+      kind: 'card',
+      selector: '.moreLikeThis--container [data-uia="titleCard--container"]',
+      titleOf(el) {
+        return (el.getAttribute('aria-label') || '').trim() || null;
+      },
+      typeOf(el) {
+        const length = el.querySelector('.duration')?.textContent || '';
+        if (SHOW_LENGTH.test(length)) return 'series';
+        return /^\s*(\d+h)?\s*(\d+m)?\s*$/.test(length) && /\d/.test(length) ? 'movie' : null;
+      },
+      yearOf(el) {
+        if (this.typeOf(el) !== 'movie') return null;
+        const m = (el.querySelector('.year')?.textContent || '').match(/\b(19|20)\d\d\b/);
+        return m ? m[0] : null;
+      },
+      host(el) {
+        return el.querySelector('.titleCard-imageWrapper');
+      },
+    },
+    {
       // Episode cards: the show's rating, once the episode's show is known.
       kind: 'card',
       selector: 'a[data-uia="episodic-card"]',

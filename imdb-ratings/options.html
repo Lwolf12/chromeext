@@ -38,6 +38,9 @@
     .sample-imdb { font-size: 9px; font-weight: 800; color: #000; background: #f5c518; border-radius: 2px; padding: 0 3px; line-height: 1.5; }
     .credit { margin: auto 0 0; padding-top: 10px; color: #888; font-size: 12px; }   /* pinned to the bottom */
     #omdbBox { margin: 2px 0 0 23px; }
+    .extras { column-gap: 12px; row-gap: 0; }
+    .extras label.check { margin: 2px 0; }
+    .extras.off label.check { color: #999; }
     #testResult { font-weight: 600; min-height: 1.4em; margin: 2px 0 0; word-break: break-word; }
     #status { flex: 1; min-width: 200px; font-weight: 600; font-size: 13px; text-align: right; }
     .ok { color: #2a7; }
@@ -94,6 +97,15 @@
           <div class="row"><input id="key" type="text" autocomplete="off" spellcheck="false" placeholder="OMDb API key">
             <button id="save">Save</button><button id="test" type="button">Test</button></div>
           <div id="testResult"></div>
+          <div id="extras" class="row extras">Also show:
+            <label class="check"><input id="xRt" class="extra" data-extra="rt" type="checkbox"> Rotten Tomatoes</label>
+            <label class="check"><input id="xMc" class="extra" data-extra="mc" type="checkbox"> Metacritic</label>
+            <label class="check"><input id="xAw" class="extra" data-extra="awards" type="checkbox"> Awards</label>
+            <label class="check"><input id="xCards" class="extra" data-extra="cards" type="checkbox"> On cards too <span class="muted">(uses more lookups)</span></label>
+            <span id="extrasNote" class="muted">(needs a working OMDb key)</span>
+            <span class="tip up" tabindex="0" data-tip="Shown next to the IMDb rating in hover previews, banners and title pages, and with On cards too also on title cards (Rotten Tomatoes and Metacritic only). One OMDb request per title, remembered for 30 days; on cards that means one for each new card you scroll past, so a heavy day of browsing can use a few hundred of a free key's 1,000. Mostly films: OMDb rarely has these scores for series. Scores come from OMDb; this extension isn't affiliated with Rotten Tomatoes or Metacritic."
+                  aria-label="Shown next to the IMDb rating in hover previews, banners and title pages, and with On cards too also on title cards (Rotten Tomatoes and Metacritic only). One OMDb request per title, remembered for 30 days; on cards that means one for each new card you scroll past, so a heavy day of browsing can use a few hundred of a free key's 1,000. Mostly films: OMDb rarely has these scores for series. Scores come from OMDb; this extension isn't affiliated with Rotten Tomatoes or Metacritic.">i</span>
+          </div>
           <p class="muted">Free key: <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com</a>
              · Requests today: <span id="today">…</span> / 1,000 <span id="limit"></span></p>
         </div>
@@ -103,13 +115,17 @@
     <div class="col">
       <section>
         <h2>Sites
-          <span class="tip left" tabindex="0" data-tip="Untick a service you don't use and the extension stays idle there. Prime Video covers primevideo.com and amazon.com/gp/video. Changes apply to open tabs right away."
-                aria-label="Untick a service you don't use and the extension stays idle there. Prime Video covers primevideo.com and amazon.com/gp/video. Changes apply to open tabs right away.">i</span></h2>
+          <span class="tip left" tabindex="0" data-tip="Every service is on from the start. Untick one to stop seeing ratings there; the extension then stays idle on it. Prime Video covers primevideo.com and amazon.com/gp/video; Paramount+ includes its Showtime titles. Changes apply to open tabs right away."
+                aria-label="Every service is on from the start. Untick one to stop seeing ratings there; the extension then stays idle on it. Prime Video covers primevideo.com and amazon.com/gp/video; Paramount+ includes its Showtime titles. Changes apply to open tabs right away.">i</span></h2>
         <div class="choices">
           <label class="check"><input class="site" data-site="netflix" type="checkbox"> Netflix</label>
           <label class="check"><input class="site" data-site="primevideo" type="checkbox"> Prime Video</label>
           <label class="check"><input class="site" data-site="hulu" type="checkbox"> Hulu</label>
           <label class="check"><input class="site" data-site="hbomax" type="checkbox"> HBO Max</label>
+          <label class="check"><input class="site" data-site="appletv" type="checkbox"> Apple TV</label>
+          <label class="check"><input class="site" data-site="disneyplus" type="checkbox"> Disney+</label>
+          <label class="check"><input class="site" data-site="paramountplus" type="checkbox"> Paramount+</label>
+          <label class="check"><input class="site" data-site="tubi" type="checkbox"> Tubi</label>
         </div>
       </section>
 

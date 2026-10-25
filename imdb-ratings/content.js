@@ -20,6 +20,7 @@
   // same host may carry (Netflix's detail modal holds both).
   const OWN_BADGE = '.imdbext-badge:not(.imdbext-badge--episode)';
   let cardMode = 'always'; // card badges: 'always' | 'hover' | 'off'
+  let extraWant = {}; // OMDb extras the user ticked: {rt, mc, awards}
   const warned = new Set();
   const MESSAGES = {
     nokey: 'No ratings database yet and no working OMDb key; build the database from the settings (Update now).',
@@ -56,34 +57,44 @@
     return [].concat(target.titleOf(el)).filter((t) => typeof t === 'string' && t);
   }
 
+  // One target's error (a site redesign, a bug in its adapter) only costs
+  // that target: the others still get scanned.
   function scan(root) {
     for (const target of site.targets) {
-      if (target.kind === 'episodes') {
-        for (const el of root.querySelectorAll(target.selector)) scanEpisodes(el, target);
+      try {
+        scanTarget(root, target);
+      } catch (e) {
+        warnOnce('adapter:' + target.kind + ':' + target.selector, String(e));
+      }
+    }
+  }
+
+  function scanTarget(root, target) {
+    if (target.kind === 'episodes') {
+      for (const el of root.querySelectorAll(target.selector)) scanEpisodes(el, target);
+      return;
+    }
+    if (target.kind === 'card' && cardMode === 'off') return; // no lookups either
+    for (const el of root.querySelectorAll(target.selector)) {
+      const title = titlesOf(target, el)[0];
+      const host = title && target.host(el);
+      if (!title || !host) {
+        // Nothing to look up now. A reused node (Netflix's one preview for
+        // every card) may still carry the previous title's badge: drop it.
+        if (el.hasAttribute(PROCESSED)) {
+          el.removeAttribute(PROCESSED);
+          (host || el).querySelector(OWN_BADGE)?.remove();
+        }
         continue;
       }
-      if (target.kind === 'card' && cardMode === 'off') continue; // no lookups either
-      for (const el of root.querySelectorAll(target.selector)) {
-        const title = titlesOf(target, el)[0];
-        const host = title && target.host(el);
-        if (!title || !host) {
-          // Nothing to look up now. A reused node (Netflix's one preview for
-          // every card) may still carry the previous title's badge: drop it.
-          if (el.hasAttribute(PROCESSED)) {
-            el.removeAttribute(PROCESSED);
-            (host || el).querySelector(OWN_BADGE)?.remove();
-          }
-          continue;
-        }
-        // Same title and badge still present: nothing to do. Sites reuse
-        // nodes (Netflix's popup is one node shown for many titles), so
-        // re-badge whenever the title or the host changed under us.
-        if (el.getAttribute(PROCESSED) === title && host.querySelector(OWN_BADGE)) continue;
-        el.setAttribute(PROCESSED, title);
-        host.querySelector(OWN_BADGE)?.remove();
-        if (target.kind === 'card') io.observe(el);
-        else decorate(el, target);
-      }
+      // Same title and badge still present: nothing to do. Sites reuse
+      // nodes (Netflix's popup is one node shown for many titles), so
+      // re-badge whenever the title or the host changed under us.
+      if (el.getAttribute(PROCESSED) === title && host.querySelector(OWN_BADGE)) continue;
+      el.setAttribute(PROCESSED, title);
+      host.querySelector(OWN_BADGE)?.remove();
+      if (target.kind === 'card') io.observe(el);
+      else decorate(el, target);
     }
   }
 
@@ -142,6 +153,7 @@
     if (typeof target.place === 'function') target.place(host, badge);
     else host.appendChild(badge);
     if (target.kind === 'detail' && kind) syncCards(title, result);
+    addExtras(badge, target.kind);
 
     // Stored answer was old: show it now, refresh quietly, update if changed.
     if (result.stale) {
@@ -154,48 +166,137 @@
       if (fresh && !fresh.error && badge.isConnected && el.getAttribute(PROCESSED) === key) {
         render(badge, title, fresh, target.kind);
         if (target.kind === 'detail' && kind) syncCards(title, fresh);
+        addExtras(badge, target.kind);
       }
     }
+  }
+
+  // Optional scores from OMDb after a detail chip's IMDb line: Rotten
+  // Tomatoes, Metacritic and an awards headline, whichever the user ticked
+  // (extraWant, from the settings) and OMDb has. Card badges get them only
+  // with "On cards too", and only the two short scores. The worker decides
+  // whether it may ask OMDb at all (key confirmed, lookups on) and
+  // remembers answers.
+  async function addExtras(badge, kind) {
+    const imdbID = badge.dataset.imdbId;
+    const onCard = kind === 'card';
+    if (!imdbID || (kind !== 'detail' && !onCard)) return;
+    if (onCard ? !extraWant.cards || !(extraWant.rt || extraWant.mc) : !(extraWant.rt || extraWant.mc || extraWant.awards)) return;
+    let r;
+    try {
+      r = await chrome.runtime.sendMessage({ type: 'extras', imdbID });
+    } catch (e) {
+      return;
+    }
+    const x = r && r.extras;
+    if (!x || !badge.isConnected || badge.dataset.imdbId !== imdbID) return;
+    badge.querySelector('.imdbext-extras')?.remove();
+    const wrap = document.createElement('span');
+    wrap.className = 'imdbext-extras';
+    // A score with a link opens that site instead of IMDb (the rest of the
+    // badge still opens IMDb): Rotten Tomatoes' page for the title when OMDb
+    // gave it, otherwise that site's search for the title.
+    const add = (cls, text, tip, url) => {
+      const s = document.createElement('span');
+      s.className = cls;
+      s.textContent = text;
+      if (tip) s.title = tip;
+      if (url) {
+        s.classList.add('imdbext-link');
+        s.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(url, '_blank', 'noopener');
+        });
+      }
+      wrap.appendChild(s);
+    };
+    const name = x.title || badge.dataset.title || '';
+    if (extraWant.rt && x.rt) {
+      add('imdbext-rt' + (parseInt(x.rt, 10) >= 60 ? ' imdbext-rt--fresh' : ''), x.rt,
+        'Rotten Tomatoes critics score (via OMDb)\nClick to open Rotten Tomatoes',
+        x.rtUrl || (name && 'https://www.rottentomatoes.com/search?search=' + encodeURIComponent(name)));
+    }
+    if (extraWant.mc && x.mc != null) {
+      add('imdbext-mc ' + (x.mc >= 61 ? 'imdbext-mc--good' : x.mc >= 40 ? 'imdbext-mc--mixed' : 'imdbext-mc--bad'), String(x.mc),
+        'Metacritic score (via OMDb)\nClick to search Metacritic',
+        name && 'https://www.metacritic.com/search/' + encodeURIComponent(name) + '/');
+    }
+    if (extraWant.awards && x.awards && !onCard) add('imdbext-awards', x.awards, x.awards + ' (via OMDb)');
+    if (wrap.childElementCount) badge.appendChild(wrap);
   }
 
   // Episode lists (target kind 'episodes'): the adapter names the show
   // (showOf), the season on screen (seasonOf) and the episode rows (items:
   // [{number, row}]), and may give the show's first year (yearOf), which
-  // tells a revival from the original ("Scrubs" 2026 vs 2001). The show's
-  // IMDb ID comes from an ordinary series lookup, then one 'episodes'
-  // request covers the whole season. The marker key is
-  // show + season + row count, so switching seasons, or the site redrawing
-  // the list, decorates it again. Episodes without a rating get no badge.
+  // tells a revival from the original ("Scrubs" 2026 vs 2001). A list that
+  // mixes seasons (Apple TV's one shelf for all of them) gives each item its
+  // own season ({season, number, row}). The show's IMDb ID comes from an
+  // ordinary series lookup, then one 'episodes' request per season. The
+  // marker key is the show plus every row's season and number, so switching
+  // seasons, scrolling new rows in, or the site redrawing the list decorates
+  // it again. Episodes without a rating get no badge.
+  //
+  // A site may also redraw the rows in place after the badges went in
+  // (Paramount+ does as its page finishes loading): same list, badges gone.
+  // That list is decorated again, up to MAX_REDRAWS times, in case a site
+  // wipes them on every change. data-imdbext-done marks a list that was
+  // looked up and had nothing to rate, so it isn't looked up again.
+  const MAX_REDRAWS = 5;
+  const episodeState = new WeakMap(); // list element -> { key, pending, redraws }
+
   function scanEpisodes(el, target) {
     const show = target.showOf(el);
     const season = target.seasonOf(el);
     const items = show && season != null ? target.items(el) : [];
     if (!items.length) return;
-    const key = show + '|' + season + '|' + items.length;
-    if (el.getAttribute(PROCESSED) === key && el.querySelector('.imdbext-badge--episode')) return;
-    if (el.getAttribute(PROCESSED) === key && el.hasAttribute('data-imdbext-done')) return; // looked up, nothing rated
+    const key = show + '|' + items.map((i) => (i.season ?? season) + ':' + i.number).join(',');
+    const same = el.getAttribute(PROCESSED) === key;
+    if (same && el.querySelector('.imdbext-badge--episode')) return;
+    if (same && el.hasAttribute('data-imdbext-done')) return; // looked up, nothing rated
+    let state = episodeState.get(el);
+    if (same && state && state.key === key) {
+      if (state.pending) return; // still looking up
+      if (++state.redraws > MAX_REDRAWS) return; // the site keeps wiping them
+    } else {
+      state = { key, pending: false, redraws: 0 };
+      episodeState.set(el, state);
+    }
     el.setAttribute(PROCESSED, key);
     el.removeAttribute('data-imdbext-done');
-    decorateEpisodes(el, target, key, show, season);
+    const seasons = [...new Set(items.map((i) => i.season ?? season))];
+    state.pending = true;
+    decorateEpisodes(el, target, key, show, season, seasons).finally(() => {
+      state.pending = false;
+    });
   }
 
-  async function decorateEpisodes(el, target, key, show, season) {
-    let series, result;
+  async function decorateEpisodes(el, target, key, show, season, seasons) {
+    let series;
+    const bySeason = {};
     try {
       const year = typeof target.yearOf === 'function' ? target.yearOf(el) || null : null;
       series = await chrome.runtime.sendMessage({ type: 'rating', title: show, kind: 'series', year });
-      if (!series || !series.imdbID || el.getAttribute(PROCESSED) !== key) return;
-      result = await chrome.runtime.sendMessage({ type: 'episodes', imdbID: series.imdbID, season });
+      if (el.getAttribute(PROCESSED) !== key) return;
+      if (!series || !series.imdbID) {
+        el.setAttribute('data-imdbext-done', ''); // show not found: nothing to rate
+        return;
+      }
+      for (const s of seasons) {
+        const result = await chrome.runtime.sendMessage({ type: 'episodes', imdbID: series.imdbID, season: s });
+        bySeason[s] = (result && result.episodes) || {};
+      }
     } catch (e) {
       warnOnce('context', String(e));
       return;
     }
     if (el.getAttribute(PROCESSED) !== key) return; // season switched meanwhile
-    el.setAttribute('data-imdbext-done', '');
-    const eps = (result && result.episodes) || {};
-    for (const { number, row } of target.items(el)) {
+    let placed = 0;
+    for (const item of target.items(el)) {
+      const { number, row } = item;
+      const s = item.season ?? season;
       row.querySelector('.imdbext-badge--episode')?.remove();
-      const ep = eps[number];
+      const ep = (bySeason[s] || {})[number];
       if (!ep) continue;
       const [rating, votes] = ep;
       const badge = document.createElement('span');
@@ -204,16 +305,18 @@
       score.className = 'imdbext-score';
       score.textContent = rating.toFixed(1);
       badge.appendChild(score);
-      badge.title = 'IMDb rating ' + rating.toFixed(1) + ' · S' + season + ' E' + number +
+      badge.title = 'IMDb rating ' + rating.toFixed(1) + ' · S' + s + ' E' + number +
         (votes ? ' · ' + votes.toLocaleString('en-US') + ' votes' : '') + '\nClick to open the season on IMDb';
       badge.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        window.open('https://www.imdb.com/title/' + series.imdbID + '/episodes/?season=' + season, '_blank', 'noopener');
+        window.open('https://www.imdb.com/title/' + series.imdbID + '/episodes/?season=' + s, '_blank', 'noopener');
       });
       if (typeof target.place === 'function') target.place(row, badge);
       else row.appendChild(badge);
+      placed++;
     }
+    if (!placed) el.setAttribute('data-imdbext-done', ''); // nothing rated in this list
   }
 
   // A detail popup may know the title's type when the cards didn't (Netflix
@@ -228,7 +331,10 @@
       const sel = target.selector.split(',').map((s) => s.trim() + attr).join(', ');
       for (const el of document.querySelectorAll(sel)) {
         const badge = (target.host(el) || el).querySelector('.imdbext-badge--card');
-        if (badge) render(badge, title, result, 'card');
+        if (badge) {
+          render(badge, title, result, 'card');
+          addExtras(badge, 'card');
+        }
       }
     }
   }
@@ -262,6 +368,7 @@
       (result.imdbID ? '\nClick to open the IMDb page' : '');
     if (result.imdbID) badge.dataset.imdbId = result.imdbID;
     else delete badge.dataset.imdbId;
+    badge.dataset.title = result.matchedTitle || title;
 
     if (kind === 'detail') {
       const info = document.createElement('span');
@@ -406,10 +513,13 @@
   // grey "n/a" card badges, badgeLabel 'star' (default) | 'imdb' picks the
   // tag before the score. Hover, n/a and the label are pure CSS (classes on
   // <html>, see badge.css); 'off' also stops card lookups, so it rescans.
-  const PREF_KEYS = ['cardBadges', 'hideNA', 'badgeLabel'];
+  // extraRatings {rt, mc, awards} (with OMDb lookups on) adds OMDb's extra
+  // scores to detail chips; changing it rescans so open chips follow.
+  const PREF_KEYS = ['cardBadges', 'hideNA', 'badgeLabel', 'extraRatings', 'omdbFallback'];
 
-  function applyBadgePrefs({ cardBadges, hideNA, badgeLabel }) {
+  function applyBadgePrefs({ cardBadges, hideNA, badgeLabel, extraRatings, omdbFallback }) {
     cardMode = cardBadges === 'hover' || cardBadges === 'off' ? cardBadges : 'always';
+    extraWant = omdbFallback === false ? {} : { ...(extraRatings || {}) };
     const cl = document.documentElement.classList;
     cl.toggle('imdbext-cards-hover', cardMode === 'hover');
     cl.toggle('imdbext-hide-na', !!hideNA);
@@ -424,9 +534,10 @@
     if (area !== 'sync') return;
     if (PREF_KEYS.some((k) => changes[k])) {
       const wasOff = cardMode === 'off';
+      const extrasChanged = !!(changes.extraRatings || changes.omdbFallback);
       chrome.storage.sync.get(PREF_KEYS).then((prefs) => {
         applyBadgePrefs(prefs);
-        if (mo && wasOff !== (cardMode === 'off')) {
+        if (mo && (extrasChanged || wasOff !== (cardMode === 'off'))) {
           stop();
           start();
         }

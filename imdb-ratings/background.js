@@ -135,6 +135,47 @@ chrome.runtime.onStartup.addListener(() => {
   maybeRefresh();
 });
 
+// Opt-in sites, for when the extension has users to protect. Adding a
+// required host to an update makes Chrome switch the extension off for
+// everyone until they accept the new permission, so a site added later can
+// be made optional instead: the settings ask for access when the user
+// ticks it (its checkbox carries data-origins), and while access is granted
+// its content script is registered here. Granting or removing access
+// anywhere (the settings, or Site access on chrome://extensions) lands in
+// permissions.onAdded/onRemoved; checked again whenever the worker starts.
+// Needs "scripting" in the manifest's permissions and the host under
+// optional_host_permissions. Empty for now: Apple TV, Disney+ and Tubi
+// arrived while the store version had only a handful of users, so they are
+// ordinary sites in the manifest. An entry looks like
+//   appletv: { matches: ['https://tv.apple.com/*'], js: ['sites/appletv.js', 'content.js'] },
+const OPTIONAL_SITES = {};
+
+let siteSync = Promise.resolve();
+
+function syncOptionalSites() {
+  siteSync = siteSync.then(registerOptionalSites).catch((e) => console.info('[imdbext] optional sites:', String(e)));
+  return siteSync;
+}
+
+async function registerOptionalSites() {
+  if (!Object.keys(OPTIONAL_SITES).length || !chrome.scripting) return;
+  const registered = new Set((await chrome.scripting.getRegisteredContentScripts()).map((s) => s.id));
+  for (const [id, site] of Object.entries(OPTIONAL_SITES)) {
+    const granted = await chrome.permissions.contains({ origins: site.matches });
+    if (granted && !registered.has(id)) {
+      await chrome.scripting.registerContentScripts([
+        { id, matches: site.matches, js: site.js, css: ['badge.css'], runAt: 'document_idle' },
+      ]);
+    } else if (!granted && registered.has(id)) {
+      await chrome.scripting.unregisterContentScripts({ ids: [id] });
+    }
+  }
+}
+
+syncOptionalSites();
+chrome.permissions.onAdded.addListener(() => syncOptionalSites());
+chrome.permissions.onRemoved.addListener(() => syncOptionalSites());
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'db-refresh') maybeRefresh();
 });
@@ -155,6 +196,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.type === 'episodes' && /^tt\d+$/.test(msg.imdbID || '') && Number.isInteger(msg.season) && msg.season >= 0) {
     lookupEpisodes(msg.imdbID, msg.season).then(sendResponse, (e) => sendResponse({ episodes: null, error: String(e) }));
+    return true;
+  }
+  if (msg.type === 'extras' && /^tt\d+$/.test(msg.imdbID || '')) {
+    lookupExtras(msg.imdbID).then(sendResponse, (e) => sendResponse({ extras: null, error: String(e) }));
     return true;
   }
   if (msg.type === 'usage') {
@@ -180,6 +225,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'open-settings') {
     openSettings();
     return false;
+  }
+  if (msg.type === 'sync-sites') {
+    syncOptionalSites().then(() => sendResponse({ ok: true }));
+    return true;
   }
   return false;
 });
@@ -299,9 +348,13 @@ async function maybeRefresh() {
   if (state.status === 'error' && Date.now() - (state.at || 0) < 24 * 60 * 60 * 1000) return;
   const meta = await RatingsDB.getMeta();
   if (!meta) return;
-  if (Date.now() - (meta.builtAt || 0) < DB_MAX_AGE_MS) return;
+  // A database built by an older version (format, see db.js) is rebuilt
+  // once, whatever its age: this version stores titles differently, and its
+  // lookups would miss some of the old keys.
+  const outdated = (meta.format || 1) < RatingsDB.FORMAT;
+  if (!outdated && Date.now() - (meta.builtAt || 0) < DB_MAX_AGE_MS) return;
   if (looksMetered()) return; // try again at the next check
-  await startBuild('auto');
+  await startBuild(outdated ? 'format' : 'auto');
 }
 
 // ----------------------------------------------------------------- lookups
@@ -321,7 +374,9 @@ async function maybeRefresh() {
 // wrong matches; nearly all the rest aren't in IMDb's data under any name.
 function titleVariants(title, kind) {
   const out = [];
-  let t = title;
+  // "Scary Movie (2026) - Extended Cut": the cut goes first, so the year
+  // before it is still found.
+  let t = title.replace(/\s*[-–:]\s*(extended|unrated|director[’']s|theatrical)\s+(cut|edition)\s*$/i, '');
   let year = null;
   const y = t.match(/\s*\(((?:19|20)\d\d)\)\s*$/);
   if (y) {
@@ -332,7 +387,15 @@ function titleVariants(title, kind) {
     .replace(/\s*[-–:,]?\s*season[\s-]*\d+[a-z]?\s*$/i, '')
     .replace(/\s*\[[^\]]*\]\s*$/, '')
     .replace(/\s*\([^()]{1,25}\)\s*$/, '') // "Red Eye (UK)", "The Office (US)", "(Dubbed)"
+    .replace(/\s+(UK|US)$/, '') // "Ghosts UK"
     .replace(/^clip:\s*/i, '')
+    // Sites credit a name in the title that IMDb leaves out: "Tyler
+    // Perry's Boo! A Madea Halloween" is "Boo! A Madea Halloween",
+    // "Maurice Sendak's Little Bear" is "Little Bear". A first and last name
+    // (or a known studio) with "'s". Only tried after the full title missed,
+    // so IMDb titles that keep the credit ("Tim Burton's Corpse Bride",
+    // "Mike Judge's Beavis and Butt-Head") still match as they are.
+    .replace(/^((marvel studios|disney)[’']s?|\p{Lu}[\p{Ll}.]+ \p{Lu}[\p{Ll}]+[’']s)\s+/u, '')
     .trim();
   if (t && t !== title) out.push({ title: t, kind, year });
   return out;
@@ -373,7 +436,8 @@ async function usage() {
   const stored = Object.keys(all).filter((k) => k.startsWith('r:')).length;
   const local = await RatingsDB.status();
   const build = await getBuildState();
-  return { day, today: usage.day === day ? usage.count : 0, limitHit: Date.now() < limitPauseUntil, stored, local, build, autoRefresh };
+  const keyOk = await omdbKeyConfirmed();
+  return { day, today: usage.day === day ? usage.count : 0, limitHit: Date.now() < limitPauseUntil, stored, local, build, autoRefresh, keyOk };
 }
 
 async function lookup(title, kind, refresh, year) {
@@ -542,6 +606,7 @@ async function omdbRequest(params) {
       omdbKeyRejected = true;
       updateBadge();
     }
+    await markKey(omdbKey, false);
     return { error: 'nokey' };
   }
   if (res.status === 401 || /limit/i.test(errText)) {
@@ -551,7 +616,80 @@ async function omdbRequest(params) {
     return { error: 'limit' };
   }
   if (!res.ok || !data) return { error: 'http' };
+  await markKey(omdbKey, true);
   return { data };
+}
+
+// Whether the saved key is known to work: OMDb answered a request made with
+// it. The settings only offer the extra scores then. Kept as a fingerprint
+// of the key, so a changed key starts unconfirmed; OMDb rejecting it clears
+// it. A daily-limit answer leaves it alone (the key is fine, just spent).
+let keyOkCache = null;
+
+function keyFingerprint(key) {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (Math.imul(h, 31) + key.charCodeAt(i)) | 0;
+  return String(h);
+}
+
+async function markKey(key, ok) {
+  const value = ok ? keyFingerprint(key) : null;
+  if (keyOkCache === value) return;
+  keyOkCache = value;
+  if (ok) await chrome.storage.local.set({ omdbKeyOk: value });
+  else await chrome.storage.local.remove('omdbKeyOk');
+}
+
+async function omdbKeyConfirmed() {
+  const { omdbKey } = await chrome.storage.sync.get('omdbKey');
+  const { omdbKeyOk } = await chrome.storage.local.get('omdbKeyOk');
+  return !!omdbKey && omdbKeyOk === keyFingerprint(omdbKey);
+}
+
+// Extra scores from OMDb for one title, asked by its IMDb ID (exact; no
+// title matching): Rotten Tomatoes (critics' Tomatometer), Metacritic and
+// the awards headline. Only when the user ticked at least one of them, OMDb
+// lookups are on and the key is confirmed. Kept 30 days, misses too; one
+// request per title ever opened, not per card, so it fits a free key's
+// 1,000 a day. -> {extras: {rt: '92%', mc: 74, awards: 'Won 3 Oscars'} | null}
+async function lookupExtras(imdbID) {
+  const { extraRatings = {}, omdbFallback = true } = await chrome.storage.sync.get(['extraRatings', 'omdbFallback']);
+  if (!omdbFallback || !(extraRatings.rt || extraRatings.mc || extraRatings.awards)) return { extras: null };
+  const key = 'x:' + imdbID;
+  const stored = (await chrome.storage.local.get(key))[key];
+  if (stored && Date.now() - stored.ts < HIT_REFRESH_MS) return { extras: stored.extras };
+  if (!(await omdbKeyConfirmed())) return { extras: stored ? stored.extras : null };
+
+  if (inFlight.has(key)) return inFlight.get(key);
+  // tomatoes=true adds tomatoURL, the title's Rotten Tomatoes page, when OMDb has it.
+  const p = schedule(() => omdbRequest({ i: imdbID, tomatoes: 'true' }))
+    .then(async (r) => {
+      if (r.error) return { extras: stored ? stored.extras : null, error: r.error };
+      const extras = r.data.Response === 'True' ? parseExtras(r.data) : null;
+      await chrome.storage.local.set({ [key]: { extras, ts: Date.now() } });
+      return { extras };
+    })
+    .finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
+function parseExtras(data) {
+  const source = (name) => ((data.Ratings || []).find((r) => r.Source === name) || {}).Value || null;
+  const rt = source('Rotten Tomatoes');
+  const mcValue = source('Metacritic') || (data.Metascore && data.Metascore !== 'N/A' ? data.Metascore : null);
+  const mc = mcValue ? parseInt(mcValue, 10) : NaN;
+  // Only a headline about a major award ("Won 3 Oscars.", "Nominated for 2
+  // Primetime Emmys."), not the "12 wins & 40 nominations total" tally.
+  const first = ((data.Awards || '').split('. ')[0] || '').replace(/\.$/, '').trim();
+  const awards = /\b(oscars?|emmys?|golden globes?|baftas?)\b/i.test(first) ? first : null;
+  const extras = { rt: /^\d+%$/.test(rt || '') ? rt : null, mc: Number.isFinite(mc) ? mc : null, awards };
+  if (!(extras.rt || extras.mc != null || extras.awards)) return null;
+  // For the links: the Rotten Tomatoes page when OMDb knows it, and the
+  // title to search the two sites with otherwise.
+  if (/^https:\/\/(www\.)?rottentomatoes\.com\//.test(data.tomatoURL || '')) extras.rtUrl = data.tomatoURL;
+  extras.title = data.Title || null;
+  return extras;
 }
 
 async function fetchRating(title, kind, year) {

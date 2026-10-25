@@ -88,16 +88,20 @@ async function refreshStats() {
   builtAt = l.present ? l.builtAt || 0 : 0;
   // A database built before episode ratings existed has titles only; the
   // next weekly refresh (or Update now) adds the episodes.
+  // One built by an older version is rebuilt once by itself, unless the
+  // weekly refresh is off: then this line asks for it.
   $('localStatus').textContent = !l.present
     ? 'Not built yet. Click Update now; it takes a few minutes.'
-    : l.episodes
-      ? l.titles.toLocaleString() + ' titles and ' + l.episodes.toLocaleString() + ' episodes, built ' + l.built + ' (' + ago(l.builtAt) + ').'
-      : l.titles.toLocaleString() + ' titles, built ' + l.built + ' (' + ago(l.builtAt) + '). Episode ratings arrive with the next update.';
+    : (l.episodes
+        ? l.titles.toLocaleString() + ' titles and ' + l.episodes.toLocaleString() + ' episodes, built ' + l.built + ' (' + ago(l.builtAt) + ').'
+        : l.titles.toLocaleString() + ' titles, built ' + l.built + ' (' + ago(l.builtAt) + '). Episode ratings arrive with the next update.') +
+      (l.outdated ? ' Built by an older version: Update now adds shorts and specials and matches more titles.' : '');
   $('auto').checked = u.autoRefresh !== false;
   showBuild(u.build);
   $('stored').textContent = u.stored.toLocaleString();
   $('today').textContent = u.today.toLocaleString();
   $('limit').textContent = u.limitHit ? '(limit reached; paused for now)' : '';
+  loadExtras(u.keyOk);
 }
 
 // Update now rebuilds regardless of age, but a database under a day old is
@@ -152,20 +156,42 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 // Which services the content script runs on. Stored as one object keyed by
 // the adapter's name; a missing key means on, so new sites default to on.
+// Opt-in sites (data-origins, see OPTIONAL_SITES in background.js) are on
+// only while Chrome also grants their host: ticking one asks for it,
+// unticking gives it back.
 const SITE_BOXES = [...document.querySelectorAll('input.site')];
+const originsOf = (box) => (box.dataset.origins ? box.dataset.origins.split(' ') : null);
 
 async function loadSites() {
   const { sites = {} } = await chrome.storage.sync.get('sites');
-  for (const box of SITE_BOXES) box.checked = sites[box.dataset.site] !== false;
+  for (const box of SITE_BOXES) {
+    const origins = originsOf(box);
+    const granted = !origins || (await chrome.permissions.contains({ origins }));
+    box.checked = granted && sites[box.dataset.site] !== false;
+  }
 }
 
 for (const box of SITE_BOXES) {
   box.addEventListener('change', async () => {
+    const label = box.parentElement.textContent.trim().split(' (')[0];
+    const origins = originsOf(box);
+    let note = '';
+    if (origins && box.checked) {
+      // Must be the first await: Chrome only asks during the click.
+      const granted = await chrome.permissions.request({ origins }).catch(() => false);
+      if (!granted) {
+        box.checked = false;
+        say(label + ' stays off: access to the site was not allowed.', 'bad');
+        return;
+      }
+      note = ' Reload any ' + label + ' tab that was already open.';
+    }
     const sites = {};
     for (const b of SITE_BOXES) sites[b.dataset.site] = b.checked;
     await chrome.storage.sync.set({ sites });
-    const label = box.parentElement.textContent.trim().split(' (')[0];
-    say(label + (box.checked ? ' on.' : ' off.'));
+    if (origins && !box.checked) await chrome.permissions.remove({ origins }).catch(() => {});
+    if (origins) await chrome.runtime.sendMessage({ type: 'sync-sites' }).catch(() => {});
+    say(label + (box.checked ? ' on.' : ' off.') + note);
   });
 }
 
@@ -266,6 +292,31 @@ $('test').addEventListener('click', async () => {
   refreshStats();
 });
 
+// Extra scores from OMDb (sync extraRatings {rt, mc, awards}). The boxes are
+// greyed out, with a note, until the saved key is confirmed working (a
+// passed Test, or any OMDb answer); ticks are kept while greyed, so they
+// apply again once the key works.
+const EXTRA_BOXES = [...document.querySelectorAll('input.extra')];
+
+async function loadExtras(keyOk) {
+  const { extraRatings = {} } = await chrome.storage.sync.get('extraRatings');
+  for (const box of EXTRA_BOXES) {
+    box.checked = !!extraRatings[box.dataset.extra];
+    box.disabled = !keyOk;
+  }
+  $('extras').classList.toggle('off', !keyOk);
+  $('extrasNote').hidden = !!keyOk;
+}
+
+for (const box of EXTRA_BOXES) {
+  box.addEventListener('change', async () => {
+    const extraRatings = {};
+    for (const b of EXTRA_BOXES) extraRatings[b.dataset.extra] = b.checked;
+    await chrome.storage.sync.set({ extraRatings });
+    say(box.parentElement.textContent.trim() + (box.checked ? ' on.' : ' off.'));
+  });
+}
+
 // ------------------------------------------------------------ advanced
 
 async function ratingEntries() {
@@ -284,7 +335,7 @@ $('clear').addEventListener('click', async () => {
 
 $('deleteDb').addEventListener('click', async () => {
   if (!confirm('Delete the local ratings database? Ratings then come from OMDb only (if set up) until you click Update now, which downloads about 280 MB again.')) return;
-  // Emptying ~365,000 titles takes a few seconds; keep Update now from
+  // Emptying ~420,000 titles takes a few seconds; keep Update now from
   // acting on the old build time meanwhile (it would say "current").
   $('build').disabled = true;
   $('deleteDb').disabled = true;

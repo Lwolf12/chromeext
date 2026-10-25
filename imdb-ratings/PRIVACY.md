@@ -1,10 +1,11 @@
 # Privacy policy: Show IMDb Ratings on Streaming Services
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 This extension shows IMDb user ratings on title cards while you browse
-Netflix, Prime Video, Hulu and HBO Max. It has no accounts, no analytics and
-no server of its own. Everything below runs in your browser.
+Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ and Tubi.
+It has no accounts, no analytics and no server of its own. Everything below
+runs in your browser.
 
 ## What the extension stores
 
@@ -33,8 +34,12 @@ IndexedDB, and is removed when you uninstall the extension:
   an API key. Then, for titles the local database does not have, the
   extension sends that title's name (and, where the site provides it, its
   year and whether it is a movie or series) together with your API key, so
-  OMDb can answer. OMDb's own privacy policy applies to those requests.
-  With the fallback off, nothing is ever sent to OMDb.
+  OMDb can answer. If you also tick any of the extra scores (Rotten
+  Tomatoes, Metacritic, awards), then for each title whose preview, banner
+  or title page you look at (and, with "On cards too", each title card you
+  scroll past), the extension sends that title's IMDb ID with your key,
+  once a month at most. OMDb's own privacy policy applies to
+  those requests. With the fallback off, nothing is ever sent to OMDb.
 - **To Netflix (netflix.com)**: Netflix's episode cards (rows like "Hooked
   from the First Episode") don't say which show they belong to. For each
   such card, once, the extension asks Netflix for that episode's public
@@ -63,4 +68,4 @@ open an issue at <https://github.com/Lwolf12/chromeext/issues>.
 
 IMDb is a trademark of IMDb.com, Inc. This extension is an independent
 project and is not affiliated with, endorsed by or sponsored by IMDb, OMDb,
-Netflix, Amazon, Hulu or Warner Bros. Discovery.
+Netflix, Amazon, Hulu, Warner Bros. Discovery, Apple, Disney, Paramount or Tubi.

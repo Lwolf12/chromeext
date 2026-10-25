@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Show IMDb Ratings on Streaming Services",
-  "version": "0.8.5",
-  "description": "Shows the IMDb user rating on top of each title card while you browse Netflix, Prime Video, Hulu and HBO Max.",
+  "version": "1.0.0",
+  "description": "Shows IMDb ratings on title cards on Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ and Tubi.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -36,6 +36,30 @@
     {
       "matches": ["https://play.hbomax.com/*"],
       "js": ["sites/hbomax.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://tv.apple.com/*"],
+      "js": ["sites/appletv.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.disneyplus.com/*"],
+      "js": ["sites/disneyplus.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://tubitv.com/*"],
+      "js": ["sites/tubi.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.paramountplus.com/*"],
+      "js": ["sites/paramountplus.js", "content.js"],
       "css": ["badge.css"],
       "run_at": "document_idle"
     }

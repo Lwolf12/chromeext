@@ -5,15 +5,31 @@
 //
 // Streams title.ratings.tsv.gz (~9 MB), title.basics.tsv.gz (~220 MB) and
 // title.episode.tsv.gz (~55 MB) through gzip decompression line by line,
-// keeps movies and series with at least minVotes votes and the episodes of
-// those series with at least EPISODE_MIN_VOTES votes, and hands both to
+// keeps films (with TV films, specials, direct-to-video and shorts; see
+// TYPE) and series with at least minVotes votes and the episodes of those
+// series with at least EPISODE_MIN_VOTES votes, and hands both to
 // RatingsDB.writeIndex().
 
 const RatingsBuilder = (() => {
   'use strict';
 
   const BASE = 'https://datasets.imdbws.com/';
-  const TYPE = { movie: 'm', tvMovie: 'm', tvSeries: 's', tvMiniSeries: 's' };
+  // Everything a streaming site offers as a film counts as 'm': features, TV
+  // films, direct-to-video ("Mike's New Car"), TV specials and TV shorts
+  // (the Peanuts specials) and shorts (Pixar's "Piper"). Shorts have generic
+  // names ("Spinning", "Hiccups") and many barely-watched entries, so they
+  // need SHORT_MIN_VOTES; real ones on a streaming site have thousands.
+  const TYPE = {
+    movie: 'm',
+    tvMovie: 'm',
+    video: 'm',
+    tvSpecial: 'm',
+    tvShort: 'm',
+    short: 'm',
+    tvSeries: 's',
+    tvMiniSeries: 's',
+  };
+  const SHORT_MIN_VOTES = 100;
   // Episodes get fewer votes than shows; 10 keeps ~700k episodes of ~35k
   // series (25 would drop to ~420k), still enough votes to mean something.
   const EPISODE_MIN_VOTES = 10;
@@ -88,6 +104,7 @@ const RatingsBuilder = (() => {
       const f = line.split('\t');
       const type = TYPE[f[1]];
       if (!type) continue;
+      if (f[1] === 'short' && r[1] < SHORT_MIN_VOTES) continue;
       if (type === 's') seriesIds.add(f[0]);
       const entry = [f[0], type, f[5] === '\\N' ? null : Number(f[5]), r[0], r[1], f[2]];
       kept++;
@@ -126,6 +143,7 @@ const RatingsBuilder = (() => {
       minVotes,
       titles: kept,
       episodes: episodeCount,
+      format: RatingsDB.FORMAT,
     };
     await RatingsDB.writeIndex(index, episodes, info, (done, total) => progress('writing', total ? done / total : 1));
     return info;
