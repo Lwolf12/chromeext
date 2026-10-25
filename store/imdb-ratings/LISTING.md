@@ -10,15 +10,15 @@ with `store/imdb-ratings/build-zip.ps1` and lands in `dist/`.
 
 **Summary** (132 characters max):
 
-> Shows IMDb ratings on title cards on Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ and Tubi.
+> Shows the IMDb user rating on title cards while you browse Netflix, Prime Video, Hulu, HBO Max and more.
 
 **Category:** Entertainment · **Language:** English
 
 **Description:**
 
-> See IMDb ratings without leaving the streaming site. While you browse
-> Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+, Paramount+ or Tubi, every title card gets a small
-> rating badge. Hovering a title adds the year and vote count to the site's
+> See IMDb ratings without leaving the streaming site. Works on eight of
+> the major streaming services (the full list is on the project page
+> below). While you browse, every title card gets a small rating badge. Hovering a title adds the year and vote count to the site's
 > own preview, with a link to the title's page. Banners and title pages get
 > a rating chip too. A show's episode list also gets a rating next to every
 > episode, so the standout episodes and seasons are easy to spot. Prefer a
@@ -58,6 +58,13 @@ line, which listed IMDb, OMDb, Netflix, Amazon, Hulu and HBO Max in a row.
 The description was then trimmed to name each streaming service once and
 IMDb three times plus the notice. Keep brand names out of lists and
 repetition.
+
+1.0.0 was rejected the same way (2026-10-25) for the summary naming all
+eight services ("Netflix, Prime Video, Hulu, HBO Max, Apple TV, Disney+,
+Paramount+ and Tubi"); the description had the same list. Four names
+passed in 0.8.x, so the summary (the manifest's `description`, which
+needs a new package to change) names four plus "and more", and the
+description names none and points to the project page.
 
 **Icon:** `imdb-ratings/icons/icon128.png` (taken from the ZIP automatically).
 
