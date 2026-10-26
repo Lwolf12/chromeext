@@ -23,6 +23,11 @@ Web Store; the others you load straight from this repository.
 To update later, download the newer release's ZIP, replace the folder, and
 click the reload icon on the extension's card in `chrome://extensions`.
 
+## Credits
+
+Built with Claude Code (Anthropic's AI coding assistant), which wrote the
+code; I designed, tested and published both extensions.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). It covers the code in this repository. The

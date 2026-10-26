@@ -143,6 +143,9 @@ this one."
 
 ## Credits
 
+Built with Claude Code (Anthropic's AI coding assistant), which wrote the
+code; I designed it, tested it on the streaming sites and published it.
+
 Information courtesy of IMDb (<https://www.imdb.com>). Used with permission.
 The ratings come from IMDb's non-commercial datasets, which IMDb allows for
 personal and non-commercial use with this attribution.
