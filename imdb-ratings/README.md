@@ -115,15 +115,6 @@ that site's URLs that loads the adapter before `content.js`, and put any
 site-specific badge positioning in `badge.css`. The existing adapters'
 header comments record what each site's markup looks like.
 
-Once the store version has real users, a new site is better made opt-in:
-an update that adds a required host makes Chrome switch the extension off
-for existing users until they accept it. The code for that is in place
-but unused: put the host under `optional_host_permissions`, add
-`"scripting"` to `permissions`, add the site to `OPTIONAL_SITES` in
-`background.js` (which registers its content script while access is
-granted) and give its checkbox in `options.html` a `data-origins`
-attribute (ticking it asks Chrome for access).
-
 Or point Claude Code at this folder, paste the site's URL, and say "add
 this one."
 
