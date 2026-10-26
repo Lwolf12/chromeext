@@ -22,3 +22,9 @@ Web Store; the others you load straight from this repository.
 
 To update later, download the newer release's ZIP, replace the folder, and
 click the reload icon on the extension's card in `chrome://extensions`.
+
+## License
+
+MIT, see [LICENSE](LICENSE). It covers the code in this repository. The
+IMDb ratings data is not part of it: the IMDb extension downloads that
+from IMDb on each user's machine, under IMDb's own terms.
