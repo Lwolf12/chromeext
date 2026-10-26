@@ -4,33 +4,35 @@ Each extension is published as its own GitHub Release with a ZIP attached, so
 downloads are counted per extension. A workflow
 (`.github/workflows/release.yml`) does the work when a tag is pushed.
 
+The IMDb extension moved to <https://github.com/Lwolf12/show-imdb-ratings>
+on 2026-10-26 and is released there. Its releases up to 1.0.0
+(`imdb-ratings-v…`) stay on this repository's Releases page.
+
 ## Cut a release
 
 1. Bump `"version"` in the extension's `manifest.json` and commit it.
 2. Tag the commit `<folder>-v<version>` and push the tag:
 
    ```bash
-   git tag imdb-ratings-v0.5.0
-   git push origin imdb-ratings-v0.5.0
+   git tag youtube-old-layout-v1.0.1
+   git push origin youtube-old-layout-v1.0.1
    ```
 
    The tag's version must match the manifest, or the workflow stops.
 3. A minute later the release appears at
    <https://github.com/Lwolf12/chromeext/releases> with
-   `imdb-ratings-v0.5.0.zip` attached. The ZIP never includes
-   `imdb-ratings/data/`: that database is built by each user from IMDb's
-   dumps, which IMDb licenses for personal use only, so it must not be
-   redistributed.
+   `youtube-old-layout-v1.0.1.zip` attached, with the repository's LICENSE
+   inside the folder.
 4. Add a short "What's new" to that release's notes, above the install
    text the workflow wrote: a few bullets covering this release only, never
    a running history (older notes stay on older releases).
 
    ```bash
-   gh release edit imdb-ratings-v0.5.0 --notes-file notes.md
+   gh release edit youtube-old-layout-v1.0.1 --notes-file notes.md
    ```
 
    where `notes.md` holds the What's new bullets followed by the existing
-   install text (`gh release view imdb-ratings-v0.5.0 --json body`).
+   install text (`gh release view youtube-old-layout-v1.0.1 --json body`).
 
 ## Download counts
 

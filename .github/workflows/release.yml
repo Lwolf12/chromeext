@@ -1,10 +1,10 @@
 # Publishes one extension as a GitHub Release when a tag of the form
-# <folder>-v<version> is pushed, e.g. imdb-ratings-v0.4.0. The release gets a
+# <folder>-v<version> is pushed, e.g. youtube-old-layout-v1.0.0. The release gets a
 # ZIP of that folder as its asset, and GitHub counts downloads per asset.
 #
 # To cut a release (see RELEASING.md):
-#   git tag imdb-ratings-v0.4.0
-#   git push origin imdb-ratings-v0.4.0
+#   git tag youtube-old-layout-v1.0.1
+#   git push origin youtube-old-layout-v1.0.1
 
 name: Release extension
 
@@ -40,11 +40,12 @@ jobs:
           echo "ext=$ext" >> "$GITHUB_OUTPUT"
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
-      # imdb-ratings ships no ratings data: the extension builds its database
-      # in each user's browser from IMDb's dumps, which IMDb licenses for
-      # personal use only.
+      # The repository's MIT licence goes inside the extension folder, so a
+      # downloaded ZIP carries it.
       - name: Zip the extension folder
-        run: zip -r "${{ steps.meta.outputs.ext }}-v${{ steps.meta.outputs.ver }}.zip" "${{ steps.meta.outputs.ext }}"
+        run: |
+          cp LICENSE "${{ steps.meta.outputs.ext }}/LICENSE"
+          zip -r "${{ steps.meta.outputs.ext }}-v${{ steps.meta.outputs.ver }}.zip" "${{ steps.meta.outputs.ext }}"
 
       - name: Create the release with the ZIP attached
         env:
