@@ -1,27 +1,17 @@
 # chromeext
 
-Small Chrome extensions, one per folder, loaded straight from this
-repository.
+**Archived.** Both extensions that lived here now have their own
+repositories and store listings:
 
-| Extension | What it does |
-| --- | --- |
-| [youtube-old-layout](youtube-old-layout/) | Brings back the classic YouTube watch page: recommended videos on the right, comments under the video. |
-| [Show IMDb Ratings on Streaming Services](https://github.com/Lwolf12/show-imdb-ratings) | Overlays the IMDb user rating on title cards while browsing Netflix, Prime Video, Hulu, HBO Max and more, with episode ratings in each show's episode list. Moved to [its own repository](https://github.com/Lwolf12/show-imdb-ratings); [install from the Chrome Web Store](https://chromewebstore.google.com/detail/biopmnlghmgjoloionocinndfopncelh). Its releases up to 1.0.0 stay on this repository's Releases page. |
+| Extension | Repository | Install |
+| --- | --- | --- |
+| Comments Below for YouTube (was `youtube-old-layout`) | [Youtube-comments-below](https://github.com/Lwolf12/Youtube-comments-below) | [Chrome Web Store](https://chromewebstore.google.com/detail/comments-below-for-youtub/poejpcjlkaaanjenanjlmgfiknaehlbf) · [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/comments-below-for-youtube/) |
+| Show IMDb Ratings on Streaming Services (was `imdb-ratings`) | [show-imdb-ratings](https://github.com/Lwolf12/show-imdb-ratings) from 1.0.1; versions up to 1.0.0 in [imdbext](https://github.com/Lwolf12/imdbext) | [Chrome Web Store](https://chromewebstore.google.com/detail/biopmnlghmgjoloionocinndfopncelh) |
 
-## Installing from this repository
-
-1. Open the [Releases page](https://github.com/Lwolf12/chromeext/releases)
-   and download the ZIP for the extension you want (each release is named
-   after its extension, for example `youtube-old-layout v1.0.0`). Extract it
-   somewhere you'll keep it: Chrome loads the extension from that folder
-   every time it starts, so don't delete it afterwards.
-2. In Chrome, open `chrome://extensions`.
-3. Turn on **Developer mode** (toggle in the top right).
-4. Click **Load unpacked** and pick the extracted folder, for example
-   `youtube-old-layout`.
-
-To update later, download the newer release's ZIP, replace the folder, and
-click the reload icon on the extension's card in `chrome://extensions`.
+This repository is kept read-only so that existing links keep working:
+the [Releases page](https://github.com/Lwolf12/chromeext/releases) still
+has the ZIPs that were published from here, and `imdb-ratings/PRIVACY.md`
+is still the privacy policy linked from the IMDb extension's store listing.
 
 ## Credits
 
@@ -30,4 +20,4 @@ code; I designed, tested and published the extensions.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). It covers the code in this repository.
+MIT, see [LICENSE](LICENSE).

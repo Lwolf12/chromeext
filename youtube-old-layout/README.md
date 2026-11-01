@@ -1,5 +1,11 @@
 # YouTube Old Layout
 
+> **Moved.** This extension is now **Comments Below for YouTube**, in
+> [its own repository](https://github.com/Lwolf12/Youtube-comments-below),
+> on the [Chrome Web Store](https://chromewebstore.google.com/detail/comments-below-for-youtub/poejpcjlkaaanjenanjlmgfiknaehlbf)
+> and [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/comments-below-for-youtube/).
+> What follows is the original README, kept for the 1.0.0 release here.
+
 Brings back the classic YouTube watch page: recommended videos in the
 right-hand column, comments underneath the video.
 
